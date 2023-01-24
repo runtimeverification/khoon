@@ -2,6 +2,7 @@ module HOON-SYNTAX
     syntax Hoon ::= Noun
 
     syntax Noun ::= Atom
+                  | "[" Noun Noun "]"
 
     syntax Atom ::= UD
                   | UI
