@@ -1,8 +1,25 @@
 module HOON-SYNTAX
-    syntax Hoon ::= Noun
+    syntax Hoon ::= Exp
+
+    syntax KResult ::= Noun
+
+    syntax Exp ::= Noun
+                 | Rune
+
+    syntax WideExp ::= Noun
+                     | WideForm
+
+    syntax Rune ::= TallForm
+                  | WideForm
+
+    syntax TallForm ::= ":-" Exp Exp [strict]
+
+    syntax WideForm ::= ":-(" WideExp WideExp ")" [strict]
 
     syntax Noun ::= Atom
-                  | "[" Noun Noun "]"
+                  | Cell
+
+    syntax Cell ::= "[" Exp Exp "]"
 
     syntax Atom ::= UD
                   | UI
@@ -14,4 +31,6 @@ endmodule
 module HOON
     imports HOON-SYNTAX
 
+    configuration
+        <k> $PGM:Hoon </k>
 endmodule
