@@ -38,4 +38,7 @@ module HOON
 
     configuration
         <k> $PGM:Hoon </k>
+
+    rule <k> :- P Q => [P \u2660 Q] ... </k>
+    rule <k> :-(P \u2660 Q) => [P \u2660 Q] ... </k>
 endmodule
