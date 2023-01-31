@@ -26,11 +26,18 @@ module HOON-SYNTAX
 
     syntax WideForm ::= ":-" "(" WideExp "\\u2660" WideExp ")" [strict]
 
-    syntax Atom ::= UD
+    syntax Atom ::= TAS
+                  | UD
                   | UI
 
-    syntax UD ::= r"(0{1})|([1-9]{1}[0-9]{0,2})(\\.\\n?[0-9]{3})*" [token]
-    syntax UI ::= r"(0i)(0{1}|[1-9]{1}[0-9]*)" [token]
+    // Auras
+    syntax TAS ::= r"%(([a-z]{1}[a-z0-9\\-]*)|(.[yn])|{Number})" [token]
+    syntax UD ::= r"{UD}" [token]
+    syntax UI ::= r"{UI}" [token]
+
+    syntax lexical Number = r"{UD}|{UI}"
+    syntax lexical UD = r"(0{1})|([1-9]{1}[0-9]{0,2})(\\.\\n?[0-9]{3})*"
+    syntax lexical UI = r"(0i)(0{1}|[1-9]{1}[0-9]*)"
 endmodule
 
 module HOON
