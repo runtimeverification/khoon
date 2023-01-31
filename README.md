@@ -6,4 +6,4 @@ ISSUES:
 TODO:
  - The subject.
  - Remaining runes.
- - Pretty-printer.
+ - Remaining auras.
