@@ -22,9 +22,13 @@ module HOON-SYNTAX
     syntax TallExp ::= Noun
                      | TallForm
 
-    syntax TallForm ::= ":-" Exp Exp [strict]
+    syntax TallForm ::= Rune2 Exp Exp [strict]
 
-    syntax WideForm ::= ":-" "(" WideExp "\\u2660" WideExp ")" [strict]
+    syntax WideForm ::= Rune2 "(" WideExp "\\u2660" WideExp ")" [strict]
+
+    // 2 arg runes
+    syntax Rune2 ::= ":-"
+                   | ".="
 
     syntax Atom ::= TAS
                   | UD
@@ -46,6 +50,10 @@ module HOON
     configuration
         <k> $PGM:Hoon </k>
 
+    // colhep
     rule <k> :- P Q => [P \u2660 Q] ... </k>
     rule <k> :-(P \u2660 Q) => [P \u2660 Q] ... </k>
+
+    // dottis
+    // TODO rule
 endmodule
