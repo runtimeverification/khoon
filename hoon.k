@@ -23,12 +23,17 @@ module HOON-SYNTAX
                      | TallForm
 
     syntax TallForm ::= Rune2 Exp Exp [strict]
+                      | Rune3 Exp Exp Exp [strict]
 
     syntax WideForm ::= Rune2 "(" WideExp "\\u2660" WideExp ")" [strict]
+                      | Rune3 "(" WideExp "\\u2660" WideExp "\\u2660" WideExp ")" [strict]
 
     // 2 arg runes
     syntax Rune2 ::= ":-"
                    | ".="
+
+    // 3 arg runes
+    syntax Rune3 ::= "?:"
 
     syntax Atom ::= TAS
                   | UD
@@ -55,5 +60,8 @@ module HOON
     rule <k> :-(P \u2660 Q) => [P \u2660 Q] ... </k>
 
     // dottis
+    // TODO rule
+
+    // wutcol
     // TODO rule
 endmodule
