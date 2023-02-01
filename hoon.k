@@ -4,17 +4,15 @@ module HOON-SYNTAX
     //  (two or more spaces or a newline). If neither an ace nor a gap is
     //  specified, it is zero spaces.
 
-    syntax Hoon ::= Exp
+    syntax Hoon ::= TallExp
+                  | WideExp
 
     syntax KResult ::= Noun
 
     syntax Noun ::= Atom
                   | Cell
 
-    syntax Cell ::= "[" Exp "\\ace" Exp "]"
-
-    syntax Exp ::= TallExp
-                 | WideExp
+    syntax Cell ::= "[" Hoon "\\ace" Hoon "]"
 
     syntax WideExp ::= Noun
                      | WideForm
@@ -23,9 +21,9 @@ module HOON-SYNTAX
                      | TallForm
 
     // Runes
-    syntax TallForm ::= ":-" "\\gap" Exp "\\gap" Exp [strict]
-                      | ".=" "\\gap" Exp "\\gap" Exp [strict]
-                      | "?:" "\\gap" Exp "\\gap" Exp "\\gap" Exp [strict]
+    syntax TallForm ::= ":-" "\\gap" Hoon "\\gap" Hoon [strict]
+                      | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
+                      | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
 
     syntax WideForm ::= ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
