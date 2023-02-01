@@ -4,7 +4,7 @@ import re
 # Remove all spaces and replace aces with spaces
 def pretty_spaces(s):
     s = re.sub(r' ', "", s)
-    s = re.sub(r'\\u2660', " ", s)
+    s = re.sub(r'\\ace', " ", s)
     return s
 
 # Get the value of the k cell

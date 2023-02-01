@@ -1,8 +1,8 @@
 module HOON-SYNTAX
     // Notes:
-    //  - \u2660 represents an ace (a single space). A gap (two or more spaces
-    //  or a newline) is assumed if an ace is not specified (unless it is zero
-    //  spaces).
+    //  - \ace represents an ace (a single space) and \gap represents a gap
+    //  (two or more spaces or a newline). If neither an ace nor a gap is
+    //  specified, it is zero spaces.
 
     syntax Hoon ::= Exp
 
@@ -11,7 +11,7 @@ module HOON-SYNTAX
     syntax Noun ::= Atom
                   | Cell
 
-    syntax Cell ::= "[" Exp "\\u2660" Exp "]"
+    syntax Cell ::= "[" Exp "\\ace" Exp "]"
 
     syntax Exp ::= TallExp
                  | WideExp
@@ -56,8 +56,8 @@ module HOON
         <k> $PGM:Hoon </k>
 
     // colhep
-    rule <k> :- P Q => [P \u2660 Q] ... </k>
-    rule <k> :-(P \u2660 Q) => [P \u2660 Q] ... </k>
+    rule <k> :- \gap P \gap Q => [P \ace Q] ... </k>
+    rule <k> :-(P \ace Q) => [P \ace Q] ... </k>
 
     // dottis
     // TODO rule
