@@ -57,5 +57,8 @@ module HOON
     // TODO rule
 
     // wutcol
-    // TODO rule
+    rule <k> ?: \gap %.y \gap Q \gap _ => Q ... </k>
+    rule <k> ?: \gap %.n \gap _ \gap R => R ... </k>
+    rule <k> ?:(%.y \ace Q \ace _) => Q ... </k>
+    rule <k> ?:(%.n \ace _ \ace R) => R ... </k>
 endmodule
