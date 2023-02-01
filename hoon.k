@@ -22,18 +22,14 @@ module HOON-SYNTAX
     syntax TallExp ::= Noun
                      | TallForm
 
-    syntax TallForm ::= Rune2 Exp Exp [strict]
-                      | Rune3 Exp Exp Exp [strict]
+    // Runes
+    syntax TallForm ::= ":-" "\\gap" Exp "\\gap" Exp [strict]
+                      | ".=" "\\gap" Exp "\\gap" Exp [strict]
+                      | "?:" "\\gap" Exp "\\gap" Exp "\\gap" Exp [strict]
 
-    syntax WideForm ::= Rune2 "(" WideExp "\\u2660" WideExp ")" [strict]
-                      | Rune3 "(" WideExp "\\u2660" WideExp "\\u2660" WideExp ")" [strict]
-
-    // 2 arg runes
-    syntax Rune2 ::= ":-"
-                   | ".="
-
-    // 3 arg runes
-    syntax Rune3 ::= "?:"
+    syntax WideForm ::= ":-" "(" WideExp "\\ace" WideExp ")" [strict]
+                      | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
+                      | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
 
     syntax Atom ::= TAS
                   | UD
