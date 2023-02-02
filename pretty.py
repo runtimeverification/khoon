@@ -9,7 +9,7 @@ def pretty_spaces(s):
 
 # Replace all "\dot" with "."
 def pretty_dots(s):
-    s = re.sub(r'\\dot', "\.", s)
+    s = re.sub(r'\\dot', ".", s)
     return s
 
 # Get the value of the k cell

@@ -11,9 +11,14 @@ def explicit_gaps_and_aces(s):
 def explicit_aces(s):
     return re.sub(r' ', r'\\ace', s)
 
-# Replace dots "." with \dot
+# Replace dots "." with \dot in subject expressions only
 def replace_dots(s):
-    return re.sub(r'\.', r'\\dot', s)
+    matches = re.findall(r'([^0-9%]\.+[^0-9=])|(^\.+[^0-9=])|([^0-9%]\.+$)', s)
+    for tup in matches:
+        match = ''.join(tup)
+        dots = match.replace(".", "\\dot")
+        s = s.replace(match, dots, 1)
+    return s
 
 input_file = sys.argv[1]
 with open(input_file) as f:
