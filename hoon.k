@@ -3,9 +3,11 @@ module HOON-SYNTAX
     //  - \ace represents an ace (a single space) and \gap represents a gap
     //  (two or more spaces or a newline). If neither an ace nor a gap is
     //  specified, it is zero spaces.
+    //  - \dot represents "."
 
     syntax Hoon ::= TallExp
                   | WideExp
+                  | "\\dot"
 
     syntax KResult ::= Noun
 
@@ -23,61 +25,78 @@ module HOON-SYNTAX
     // Runes
     syntax TallForm ::= ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
+                      | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
 
     syntax WideForm ::= ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
+                      | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
 
     syntax Atom ::= TAS
                   | UD
                   | UI
+                  | Null
+
+    syntax Null ::= "~" [token]
 
     // Auras
     syntax TAS ::= "%" TasText | "%" TasBool | "%" TasNumber
         syntax TasText ::= r"[a-z]{1}[a-z0-9\\-]*" [token]
-        syntax TasBool ::= r"\\.[yn]" [token]
+        syntax TasBool ::= "\\doty" [token]
+                         | "\\dotn" [token]
         syntax TasNumber ::= UD | UI
     syntax UD ::= r"{UD}" [token]
     syntax UI ::= r"{UI}" [token]
 
-    syntax lexical UD = r"(0{1})|([1-9]{1}[0-9]{0,2})(\\.\\n?[0-9]{3})*"
+    syntax lexical UD = r"(0{1})|([1-9]{1}[0-9]{0,2})(\\dot(\\gap)?[0-9]{3})*"
     syntax lexical UI = r"(0i)(0{1}|[1-9]{1}[0-9]*)"
 endmodule
 
 module HOON
     imports HOON-SYNTAX
-    imports private HOON-HELPER
-    imports private K-EQUAL
+    imports HOON-HELPER
+    imports K-EQUAL
 
     configuration
         <k> $PGM:Hoon </k>
+        <subject> ~:Noun </subject>
+
+    // Current subject
+    rule <k> \dot => S ... </k>
+         <subject> S </subject>
 
     // colhep
     rule <k> :- \gap P \gap Q => [P \ace Q] ... </k>
     rule <k> :-(P \ace Q) => [P \ace Q] ... </k>
 
     // dottis
-    rule <k> .= \gap P:Atom \gap Q:Atom => %.y ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
-    rule <k> .=(P:Atom \ace Q:Atom) => %.y ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
-    rule <k> .= \gap P:Cell \gap Q:Cell => %.y ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
-    rule <k> .=(P:Cell \ace Q:Cell) => %.y ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
-    rule <k> .= \gap _ \gap _ => %.n ... </k> [owise]
-    rule <k> .=(_ \ace _) => %.n ... </k> [owise]
+    rule <k> .= \gap P:Atom \gap Q:Atom => %\doty ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
+    rule <k> .=(P:Atom \ace Q:Atom) => %\doty ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
+    rule <k> .= \gap P:Cell \gap Q:Cell => %\doty ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
+    rule <k> .=(P:Cell \ace Q:Cell) => %\doty ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
+    rule <k> .= \gap _ \gap _ => %\dotn ... </k> [owise]
+    rule <k> .=(_ \ace _) => %\dotn ... </k> [owise]
+
+    // tisgar
+    rule <k> => \gap P \gap Q => Q ... </k>
+         <subject> _ => P </subject>
+    rule <k> =>(P \ace Q) => Q ... </k>
+         <subject> _ => P </subject>
 
     // wutcol
-    rule <k> ?: \gap %.y \gap Q \gap _ => Q ... </k>
-    rule <k> ?: \gap %.n \gap _ \gap R => R ... </k>
-    rule <k> ?:(%.y \ace Q \ace _) => Q ... </k>
-    rule <k> ?:(%.n \ace _ \ace R) => R ... </k>
+    rule <k> ?: \gap %\doty \gap Q \gap _ => Q ... </k>
+    rule <k> ?: \gap %\dotn \gap _ \gap R => R ... </k>
+    rule <k> ?:(%\doty \ace Q \ace _) => Q ... </k>
+    rule <k> ?:(%\dotn \ace _ \ace R) => R ... </k>
 endmodule
 
 module HOON-HELPER
-    imports private HOON-SYNTAX
-    imports private INT
-    imports private STRING
-    imports private STRING-BUFFER
-    imports private K-EQUAL
+    imports HOON-SYNTAX
+    imports INT
+    imports STRING
+    imports STRING-BUFFER
+    imports K-EQUAL
 
     syntax Int ::= toUnsignedInt(Atom) [function]
     syntax String ::= TasTextToString(TasText) [function, total, hook(STRING.token2string)]
@@ -86,11 +105,11 @@ module HOON-HELPER
 
     // Convert an atom to its underlying unsigned integer
     rule toUnsignedInt(%A:TasText) => String2Base(TextToHex(TasTextToString(A)), 16)
-    rule toUnsignedInt(%.y) => 0
-    rule toUnsignedInt(%.n) => 1
-    rule toUnsignedInt(%A:UD) => String2Int(replaceAll(UDToString(A), ".", ""))
+    rule toUnsignedInt(%\doty) => 0
+    rule toUnsignedInt(%\dotn) => 1
+    rule toUnsignedInt(%A:UD) => String2Int(replaceAll(UDToString(A), "\\dot", ""))
     rule toUnsignedInt(%A:UI) => String2Int(replaceFirst(UIToString(A), "0i", ""))
-    rule toUnsignedInt(A:UD) => String2Int(replaceAll(UDToString(A), ".", ""))
+    rule toUnsignedInt(A:UD) => String2Int(replaceAll(UDToString(A), "\\dot", ""))
     rule toUnsignedInt(A:UI) => String2Int(replaceFirst(UIToString(A), "0i", ""))
 
     syntax IntNoun ::= Int | IntCell

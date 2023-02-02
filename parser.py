@@ -11,8 +11,13 @@ def explicit_gaps_and_aces(s):
 def explicit_aces(s):
     return re.sub(r' ', r'\\ace', s)
 
+# Replace dots "." with \dot
+def replace_dots(s):
+    return re.sub(r'\.', r'\\dot', s)
+
 input_file = sys.argv[1]
 with open(input_file) as f:
     content = f.read()
 res = explicit_gaps_and_aces(content)
+res = replace_dots(res)
 print(res)
