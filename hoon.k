@@ -53,7 +53,7 @@ module HOON-SYNTAX
     syntax UD ::= r"{UD}" [token]
     syntax UI ::= r"{UI}" [token]
 
-    syntax lexical UD = r"(0{1})|([1-9]{1}[0-9]{0,2})(\\.(\\gap)?[0-9]{3})*"
+    syntax lexical UD = r"(0{1})|([1-9]{1}[0-9]{0,2})(\\.(\\\\gap)?[0-9]{3})*"
     syntax lexical UI = r"(0i)(0{1}|[1-9]{1}[0-9]*)"
 endmodule
 
