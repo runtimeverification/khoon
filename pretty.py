@@ -3,7 +3,7 @@ import re
 
 # Remove all spaces and replace aces with spaces
 def pretty_spaces(s):
-    s = re.sub(r'[ (\\gap)]', "", s)
+    s = re.sub(r'\\gap| ', "", s)
     s = re.sub(r'\\ace', " ", s)
     return s
 
