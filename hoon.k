@@ -25,6 +25,10 @@ module HOON-SYNTAX
                      | TallForm
 
     syntax SubjectExp ::= "\\dot"
+                        | Lark
+                        | Lark ":" Hoon [strict(2)]
+
+    syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
 
     // Runes
     syntax TallForm ::= ":-" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -60,7 +64,6 @@ endmodule
 module HOON
     imports HOON-SYNTAX
     imports HOON-HELPER
-    imports K-EQUAL
 
     configuration
         <k> $PGM:Hoon </k>
@@ -69,6 +72,16 @@ module HOON
     // Current subject
     rule <k> \dot:Hoon => S ... </k>
          <subject> S </subject>
+
+    // Addressing with lark notation
+    rule <k> L:Lark => L : \dot ... </k>
+    rule <k> L : C:Cell => LarkToString(L) : C ... </k>
+    rule <k> LS : [P \ace _] => tail(LS) : P ... </k> requires (head(LS) ==K "-") orBool (head(LS) ==K "<")
+    rule <k> LS : [_ \ace Q] => tail(LS) : Q ... </k> requires (head(LS) ==K "+") orBool (head(LS) ==K ">")
+    rule <k> "-" : [P \ace _] => P ... </k>
+    rule <k> "<" : [P \ace _] => P ... </k>
+    rule <k> "+" : [_ \ace Q] => Q ... </k>
+    rule <k> ">" : [_ \ace Q] => Q ... </k>
 
     // colhep
     rule <k> :- \gap P \gap Q => [P \ace Q] ... </k>
@@ -101,11 +114,9 @@ module HOON-HELPER
     imports STRING
     imports STRING-BUFFER
     imports K-EQUAL
+    imports BOOL
 
     syntax Int ::= toUnsignedInt(Atom) [function]
-    syntax String ::= TasTextToString(TasText) [function, total, hook(STRING.token2string)]
-                    | UDToString(UD) [function, total, hook(STRING.token2string)]
-                    | UIToString(UI) [function, total, hook(STRING.token2string)]
 
     // Convert an atom to its underlying unsigned integer
     rule toUnsignedInt(%A:TasText) => String2Base(TextToHex(TasTextToString(A)), 16)
@@ -126,7 +137,14 @@ module HOON-HELPER
     rule toUnsignedInts([P:Cell \ace Q:Atom]) => [toUnsignedInts(P) toUnsignedInt(Q)]
     rule toUnsignedInts([P:Cell \ace Q:Cell]) => [toUnsignedInts(P) toUnsignedInts(Q)]
 
+    syntax LarkString ::= String ":" Cell
+
     // Helper functions
+    syntax String ::= TasTextToString(TasText) [function, total, hook(STRING.token2string)]
+                    | UDToString(UD) [function, total, hook(STRING.token2string)]
+                    | UIToString(UI) [function, total, hook(STRING.token2string)]
+                    | LarkToString(Lark) [function, total, hook(STRING.token2string)]
+
     syntax String ::= HexOfLastChar(String) [function]
     rule HexOfLastChar(S) => Base2String(ordChar(substrString(S, lengthString(S) -Int 1, lengthString(S))), 16)
 
@@ -136,4 +154,10 @@ module HOON-HELPER
 
     syntax String ::= CutLastChar(String) [function]
     rule CutLastChar(S) => substrString(S, 0, lengthString(S) -Int 1) requires lengthString(S) >Int 0
+
+    syntax String ::= head(String) [function]
+    rule head(S) => substrString(S, 0, 1)
+
+    syntax String ::= tail(String) [function]
+    rule tail(S) => substrString(S, 1, lengthString(S))
 endmodule
