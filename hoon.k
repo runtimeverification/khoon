@@ -34,11 +34,13 @@ module HOON-SYNTAX
     syntax TallForm ::= ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
+                      | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
 
     syntax WideForm ::= ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
+                      | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
 
     syntax Atom ::= TAS
@@ -100,6 +102,12 @@ module HOON
          <subject> _ => P </subject>
     rule <k> =>(P \ace Q) => Q ... </k>
          <subject> _ => P </subject>
+
+    // tislus
+    rule <k> =+ \gap P \gap Q => => \gap [P \ace S] \gap Q ... </k>
+         <subject> S </subject>
+    rule <k> =+(P \ace Q) => =>([P \ace S] \ace Q) ... </k>
+         <subject> S </subject>
 
     // wutcol
     rule <k> ?: \gap %.y \gap Q \gap _ => Q ... </k>
