@@ -13,7 +13,7 @@ def explicit_aces(s):
 
 # Replace dots "." with \dot in subject expressions only
 def replace_dots(s):
-    matches = re.findall(r'([^0-9%]\.+[^0-9=])|(^\.+[^0-9=])|([^0-9%]\.+$)', s)
+    matches = re.findall(r'([^0-9%]\.+[^0-9=])|(^\.+[^0-9=])|([^0-9%]\.+$)|(^\.$)', s)
     for tup in matches:
         match = ''.join(tup)
         dots = match.replace(".", "\\dot")
