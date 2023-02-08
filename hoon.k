@@ -61,11 +61,12 @@ module HOON-SYNTAX
                   | Null
 
     // Auras
-    syntax TAS ::= "%" TasText | "%" TasBool | "%" TasNumber
+    syntax TAS ::= "%" TasText | "%" TasBool | "%" TasNumber | "%" TasEmpty
         syntax TasText ::= r"[a-z]{1}[a-z0-9\\-]*" [token]
         syntax TasBool ::= ".y" [token]
                          | ".n" [token]
         syntax TasNumber ::= UD | UI
+        syntax TasEmpty ::= "$"
     syntax UD ::= r"{UD}" [token]
     syntax UI ::= r"{UI}" [token]
     syntax Null ::= "~" [token]
@@ -149,6 +150,7 @@ module HOON-HELPER
     rule toUnsignedInt(%.n) => 1
     rule toUnsignedInt(%A:UD) => String2Int(replaceAll(UDToString(A), ".", ""))
     rule toUnsignedInt(%A:UI) => String2Int(replaceFirst(UIToString(A), "0i", ""))
+    rule toUnsignedInt(%$) => 0
     rule toUnsignedInt(A:UD) => String2Int(replaceAll(UDToString(A), ".", ""))
     rule toUnsignedInt(A:UI) => String2Int(replaceFirst(UIToString(A), "0i", ""))
 
