@@ -36,6 +36,7 @@ module HOON-SYNTAX
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
+                      | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
                       | "?=" "\\gap" Spec "\\gap" Hoon [strict(2)]
 
     syntax WideForm ::= ":-" "(" WideExp "\\ace" WideExp ")" [strict]
@@ -43,6 +44,7 @@ module HOON-SYNTAX
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
+                      | "?@" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
                       | "?=" "(" Spec "\\ace" WideExp ")" [strict(2)]
 
     syntax Spec ::= ElementaryMold
@@ -126,6 +128,10 @@ module HOON
     rule <k> ?: \gap %.n \gap _ \gap R => R ... </k>
     rule <k> ?:(%.y \ace Q \ace _) => Q ... </k>
     rule <k> ?:(%.n \ace _ \ace R) => R ... </k>
+
+    // wutpat
+    rule <k> ?@ \gap P \gap Q \gap R => ?: \gap ?= \gap @ \gap P \gap Q \gap R ... </k>
+    rule <k> ?@(P \ace Q \ace R) => ?:(?=(@ \ace P) \ace Q \ace R) ... </k>
 
     // wuttis
     rule <k> ?= \gap P \gap Q => %.y ... </k> requires nests(P, Q)
