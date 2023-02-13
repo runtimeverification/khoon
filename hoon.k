@@ -74,6 +74,7 @@ module HOON-SYNTAX
                       | "?=" "(" Spec "\\ace" WideExp ")" [strict(2)]
 
     syntax Spec ::= "[" Spec "\\ace" Spec "]"
+                  | "[" Spec "\\ace" Spec "\\ace" SpecCellImplicit "]"
                   | TAS
                   | "*"
                   | "@"
@@ -81,6 +82,7 @@ module HOON-SYNTAX
                   | "?"
                   | "~"
                   | Aura
+    syntax SpecCellImplicit ::= List{Spec, "\\ace"}
 
     syntax Aura ::= AText
                   | AInt
@@ -275,6 +277,8 @@ module HOON-HELPER
     rule weakNests(@ui, _:Atom) => true
     rule weakNests(P:TAS, Q:Atom) => true requires toUnsignedInt(P) ==Int toUnsignedInt(Q)
     rule weakNests([P1 \ace P2], [Q1 \ace Q2]) => weakNests(P1, Q1) andBool weakNests(P2, Q2)
+    rule weakNests([P1 \ace P2 \ace Ps], Q) => weakNests([P1 \ace P2], Q) requires Ps ==K .SpecCellImplicit
+    rule weakNests([P1 \ace P2 \ace Ps], [Q1 \ace Q2]) => weakNests(P1, Q1) andBool weakNests([P2 \ace Ps], Q2)
     rule weakNests(_, _) => false [owise]
 
     // Infer type of noun TODO type union ?(%.y %.n)
@@ -292,6 +296,8 @@ module HOON-HELPER
     syntax TypedNoun ::= bunt(Spec) [function]
 
     rule bunt([P \ace Q]) => ([getSpec(bunt(P)) \ace getSpec(bunt(Q))], [getNoun(bunt(P)) \ace getNoun(bunt(Q))])
+    rule bunt([P \ace Q \ace REST]) => bunt([P \ace Q]) requires REST ==K .SpecCellImplicit
+    rule bunt([P \ace Q \ace REST]) => ([getSpec(bunt(P)) \ace getSpec(bunt([Q \ace REST]))], [getNoun(bunt(P)) \ace getNoun(bunt([Q \ace REST]))])
     rule bunt(P:TAS) => (P, P)
     rule bunt(*) => (*, StringToUD("0"))
     rule bunt(@) => (@, StringToUD("0"))
