@@ -19,6 +19,7 @@ module HOON-SYNTAX
 
     syntax Noun ::= Atom
                   | Cell
+                  | TasText "=" Noun
 
     syntax Atom ::= TAS
                   | UD
@@ -53,6 +54,7 @@ module HOON-SYNTAX
                       | "^-" "\\gap" Spec "\\gap" Hoon [strict(2)]
                       | "^+" "\\gap" Hoon "\\gap" Hoon [strict]
                       | "^*" "\\gap" Spec
+                      | "^=" "\\gap" Skin "\\gap" Hoon [strict(2)]
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
@@ -64,6 +66,7 @@ module HOON-SYNTAX
                       | "^-" "(" Spec "\\ace" WideExp ")" [strict(2)]
                       | "^+" "(" WideExp "\\ace" WideExp ")" [strict]
                       | "^*" "(" Spec ")"
+                      | "^=" "(" Skin "\\ace" WideExp ")" [strict(2)]
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
@@ -87,6 +90,12 @@ module HOON-SYNTAX
     syntax AInt ::= "@u"
                   | "@ud"
                   | "@ui"
+
+    syntax Skin ::= TasText
+                  | TasText "=" Skin
+                  | "[" Skin "\\ace" Skin "]"
+                  | "[" Skin "\\ace" Skin "\\ace" SkinCellImplicit "]"
+    syntax SkinCellImplicit ::= List{Skin, "\\ace"}
 endmodule
 
 module HOON-TYPED
@@ -156,6 +165,10 @@ module HOON
     rule <k> ^* \gap T => bunt(T) ... </k>
     rule <k> ^*(T) => bunt(T) ... </k>
 
+    // kettis
+    rule <k> ^= \gap N \gap (T, Q) => (T, name(N, Q)) ... </k>
+    rule <k> ^=(N \ace (T, Q)) => (T, name(N, Q)) ... </k>
+
     // tisgar
     rule <k> => \gap (_, P) \gap Q => Q ... </k>
          <subject> _ => P </subject>
@@ -193,16 +206,16 @@ module HOON-HELPER
     imports K-EQUAL
     imports BOOL
 
-    syntax Cell ::= explicitBrackets(Cell)
-
     // Make implicit brackets explicit
-    rule [P \ace Q \ace R] => explicitBrackets([P \ace Q \ace R])
-    rule explicitBrackets([P \ace Q \ace .CellImplicit]) => [P \ace Q]
-    rule explicitBrackets([P \ace Q \ace R \ace REST]) => [P \ace explicitBrackets([Q \ace R \ace REST])]
+    syntax Cell ::= explicitBrackets(Cell) [function]
 
-    syntax Int ::= toUnsignedInt(Atom) [function]
+    rule [P \ace Q \ace R]:Cell => explicitBrackets([P \ace Q \ace R])
+    rule explicitBrackets([P \ace Q \ace R \ace REST]:Cell) => [P \ace explicitBrackets([Q \ace R \ace REST])]
+    rule explicitBrackets([P \ace Q \ace .CellImplicit]:Cell) => [P \ace Q]
 
     // Convert an atom to its underlying unsigned integer
+    syntax Int ::= toUnsignedInt(Atom) [function]
+
     rule toUnsignedInt(%A:TasText) => String2Base(TextToHex(TasTextToString(A)), 16)
     rule toUnsignedInt(%.y) => 0
     rule toUnsignedInt(%.n) => 1
@@ -212,19 +225,19 @@ module HOON-HELPER
     rule toUnsignedInt(A:UD) => String2Int(replaceAll(UDToString(A), ".", ""))
     rule toUnsignedInt(A:UI) => String2Int(replaceFirst(UIToString(A), "0i", ""))
 
+    // Convert each atom in a cell to its underlying unsigned integer
     syntax IntNoun ::= Int | IntCell
     syntax IntCell ::= "[" IntNoun IntNoun "]"
                      | toUnsignedInts(Cell) [function]
 
-    // Convert each atom in a cell to its underlying unsigned integer
     rule toUnsignedInts([P:Atom \ace Q:Atom]) => [toUnsignedInt(P) toUnsignedInt(Q)]
     rule toUnsignedInts([P:Atom \ace Q:Cell]) => [toUnsignedInt(P) toUnsignedInts(Q)]
     rule toUnsignedInts([P:Cell \ace Q:Atom]) => [toUnsignedInts(P) toUnsignedInt(Q)]
     rule toUnsignedInts([P:Cell \ace Q:Cell]) => [toUnsignedInts(P) toUnsignedInts(Q)]
 
+    // Check if noun Q nests in type P
     syntax Bool ::= nests(Spec, Spec) [function]
 
-    // Check if noun Q nests in type P
     rule nests(*, _) => true
     rule nests(@, @) => true
     rule nests(@, _:Aura) => true
@@ -247,9 +260,9 @@ module HOON-HELPER
     rule nests([P1 \ace P2], [Q1 \ace Q2]) => nests(P1, Q1) andBool nests(P2, Q2)
     rule nests(_, _) => false [owise]
 
+    // Check if noun underlying int nests in type P
     syntax Bool ::= weakNests(Spec, Noun) [function]
 
-    // Check if noun underlying int nests in type P
     rule weakNests(*, _) => true
     rule weakNests(@, _:Atom) => true
     rule weakNests(^, _:Cell) => true
@@ -264,9 +277,9 @@ module HOON-HELPER
     rule weakNests([P1 \ace P2], [Q1 \ace Q2]) => weakNests(P1, Q1) andBool weakNests(P2, Q2)
     rule weakNests(_, _) => false [owise]
 
+    // Infer type of noun TODO type union ?(%.y %.n)
     syntax Spec ::= typeOf(Noun) [function]
 
-    // Infer type of noun TODO type union ?(%.y %.n)
     rule typeOf(%.y) => ?
     rule typeOf(%.n) => ?
     rule typeOf(P:TAS) => P [owise]
@@ -275,9 +288,9 @@ module HOON-HELPER
     rule typeOf(_:Null) => @ // TODO type of null? %~
     rule typeOf([P \ace Q]) => [typeOf(P) \ace typeOf(Q)]
 
+    // Bunt value of spec
     syntax TypedNoun ::= bunt(Spec) [function]
 
-    // Bunt value of spec
     rule bunt([P \ace Q]) => ([getSpec(bunt(P)) \ace getSpec(bunt(Q))], [getNoun(bunt(P)) \ace getNoun(bunt(Q))])
     rule bunt(P:TAS) => (P, P)
     rule bunt(*) => (*, StringToUD("0"))
@@ -290,24 +303,33 @@ module HOON-HELPER
     rule bunt(@ud) => (@ud, StringToUD("0"))
     rule bunt(@ui) => (@ui, 0i0)
 
+    // Get noun from typed noun
     syntax Noun ::= getNoun(TypedNoun) [function]
 
-    // Get noun from typed noun
     rule getNoun((_, N)) => N
 
+    // Get spec (type) from typed noun
     syntax Spec ::= getSpec(TypedNoun) [function]
 
-    // Get spec (type) from typed noun
     rule getSpec((T, _)) => T
 
-    syntax Noun ::= toType(Spec, Noun) [function]
+    // Bind a name to a value
+    syntax Noun ::= name(Skin, Noun) [function]
 
-    // Convert a nouns underlying int to the specified type
+    rule name(N:TasText, P) => N=P
+    rule name(N1=N2, P) => N1=name(N2, P)
+    rule name([N1 \ace N2], [P1 \ace P2]) => [name(N1, P1) \ace name(N2, P2)]
+    rule name([N1 \ace N2 \ace Ns], P) => name([N1 \ace N2], P) requires Ns ==K .SkinCellImplicit
+    rule name([N1 \ace N2 \ace Ns], [P1 \ace P2]) => [name(N1, P1) \ace name([N2 \ace Ns], P2)]
+
     // TODO Make exhaustive
     rule toType(@tas, Q:UD) => % StringToTasText(UDToText(Q))
     rule toType([T1 \ace T2], [P \ace Q]) => [toType(T1, P) \ace toType(T2, Q)]
     rule toType(_, Q) => Q [owise]
 
+    syntax Noun ::= toType(Spec, Noun) [function]
+
+    // Lark syntax used in lark rules
     syntax LarkString ::= String ":" Cell
 
     // Helper functions
