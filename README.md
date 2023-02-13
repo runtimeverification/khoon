@@ -1,7 +1,7 @@
 K framework implementation of Hoon.
 
 ISSUES:
- - Implicit brackets for cells not implemented.
+ - Pretty-printer does not remove explicit brackets in cells.
  - Errors are never thrown.
 
 TODO:

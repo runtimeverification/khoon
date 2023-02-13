@@ -18,10 +18,19 @@ def get_k_res(s):
     i = lines.index("<k>") + 1
     return lines[i][:-3] # remove ending "~>."
 
+# Extract the noun from the typed noun if type info present
+def strip_type_info(s):
+    i = s.find(",")
+    if i == -1:
+        return s
+    else:
+        return s[i+1:-1]
+
 input_file = sys.argv[1]
 with open(input_file) as f:
     content = f.read()
 res = pretty_spaces(content)
 res = pretty_dots(res)
 res = get_k_res(res)
+res = strip_type_info(res)
 print(res)

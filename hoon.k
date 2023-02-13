@@ -38,7 +38,9 @@ module HOON-SYNTAX
     syntax lexical UD = r"(0{1})|([1-9]{1}[0-9]{0,2})(\\.(\\\\gap)?[0-9]{3})*"
     syntax lexical UI = r"(0i)(0{1}|[1-9]{1}[0-9]*)"
 
-    syntax Cell ::= "[" Hoon "\\ace" Hoon "]"
+    syntax Cell ::= "[" Hoon "\\ace" Hoon "]" [strict]
+                  | "[" Hoon "\\ace" Hoon "\\ace" CellImplicit "]" [strict]
+    syntax CellImplicit ::= List{Hoon, "\\ace"}
 
     syntax SubjectExp ::= "\\dot"
                         | Lark
@@ -112,8 +114,9 @@ module HOON
     rule <k> (P:Noun):TallExp ~> K:K => (typeOf(P), P) ~> K </k> requires K =/=K .
     rule <k> (P:Noun):WideExp ~> K:K => (typeOf(P), P) ~> K </k> requires K =/=K .
 
-    // Strip type information in the end
-    rule <k> (_, P) ~> . => P ~> . </k>
+    // Convert cells of typed nouns to a typed noun
+    rule <k> ([(T1, P) \ace (T2, Q)]):TallExp => ([T1 \ace T2], [P \ace Q]) ... </k>
+    rule <k> ([(T1, P) \ace (T2, Q)]):WideExp => ([T1 \ace T2], [P \ace Q]) ... </k>
 
     // Current subject
     rule <k> \dot:Hoon => S ... </k>
@@ -189,6 +192,13 @@ module HOON-HELPER
     imports STRING
     imports K-EQUAL
     imports BOOL
+
+    syntax Cell ::= explicitBrackets(Cell)
+
+    // Make implicit brackets explicit
+    rule [P \ace Q \ace R] => explicitBrackets([P \ace Q \ace R])
+    rule explicitBrackets([P \ace Q \ace .CellImplicit]) => [P \ace Q]
+    rule explicitBrackets([P \ace Q \ace R \ace REST]) => [P \ace explicitBrackets([Q \ace R \ace REST])]
 
     syntax Int ::= toUnsignedInt(Atom) [function]
 
