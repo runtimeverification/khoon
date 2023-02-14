@@ -53,6 +53,7 @@ module HOON-SYNTAX
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
                       | "^-" "\\gap" Spec "\\gap" Hoon [strict(2)]
                       | "^+" "\\gap" Hoon "\\gap" Hoon [strict]
+                      | "^~" "\\gap" Hoon [strict]
                       | "^*" "\\gap" Spec
                       | "^=" "\\gap" Skin "\\gap" Hoon [strict(2)]
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
@@ -65,6 +66,7 @@ module HOON-SYNTAX
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
                       | "^-" "(" Spec "\\ace" WideExp ")" [strict(2)]
                       | "^+" "(" WideExp "\\ace" WideExp ")" [strict]
+                      | "^~" "(" Hoon ")" [strict]
                       | "^*" "(" Spec ")"
                       | "^=" "(" Skin "\\ace" WideExp ")" [strict(2)]
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
@@ -162,6 +164,10 @@ module HOON
     // ketlus
     rule <k> ^+ \gap (T1, _) \gap (T2, Q) => (T1, toType(T1, Q)) ... </k> requires nests(T1, T2)
     rule <k> ^+((T1, _) \ace (T2, Q)) => (T1, toType(T1, Q)) ... </k> requires nests(T1, T2)
+
+    // ketsig TODO
+    rule <k> ^~ \gap P => P ... </k>
+    rule <k> ^~(P) => P ... </k>
 
     // kettar
     rule <k> ^* \gap T => bunt(T) ... </k>
