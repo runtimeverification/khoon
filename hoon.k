@@ -84,6 +84,7 @@ module HOON-SYNTAX
                   | "?"
                   | "~"
                   | Aura
+                  | TasText "=" Spec
     syntax SpecCellImplicit ::= List{Spec, "\\ace"}
 
     syntax Aura ::= AText
@@ -243,7 +244,7 @@ module HOON-HELPER
     rule toUnsignedInts([P:Cell \ace Q:Atom]) => [toUnsignedInts(P) toUnsignedInt(Q)]
     rule toUnsignedInts([P:Cell \ace Q:Cell]) => [toUnsignedInts(P) toUnsignedInts(Q)]
 
-    // Check if noun Q nests in type P
+    // Check if the second Spec nests in the first
     syntax Bool ::= nests(Spec, Spec) [function]
 
     rule nests(*, _) => true
@@ -266,6 +267,8 @@ module HOON-HELPER
     rule nests(@ui, @) => true
     rule nests(P:TAS, Q:TAS) => true requires P ==K Q
     rule nests([P1 \ace P2], [Q1 \ace Q2]) => nests(P1, Q1) andBool nests(P2, Q2)
+    rule nests(_=P, Q) => nests(P, Q)
+    rule nests(P, _=Q) => nests(P, Q)
     rule nests(_, _) => false [owise]
 
     // Check if noun underlying int nests in type P
@@ -297,6 +300,7 @@ module HOON-HELPER
     rule typeOf(_:UI) => @ui
     rule typeOf(_:Null) => @ // TODO type of null? %~
     rule typeOf([P \ace Q]) => [typeOf(P) \ace typeOf(Q)]
+    rule typeOf(P=Q) => P=typeOf(Q)
 
     // Bunt value of spec
     syntax TypedNoun ::= bunt(Spec) [function]
@@ -304,6 +308,7 @@ module HOON-HELPER
     rule bunt([P \ace Q]) => ([getSpec(bunt(P)) \ace getSpec(bunt(Q))], [getNoun(bunt(P)) \ace getNoun(bunt(Q))])
     rule bunt([P \ace Q \ace REST]) => bunt([P \ace Q]) requires REST ==K .SpecCellImplicit
     rule bunt([P \ace Q \ace REST]) => ([getSpec(bunt(P)) \ace getSpec(bunt([Q \ace REST]))], [getNoun(bunt(P)) \ace getNoun(bunt([Q \ace REST]))])
+    rule bunt(P=Q) => (P=getSpec(bunt(Q)), P=getNoun(bunt(Q)))
     rule bunt(P:TAS) => (P, P)
     rule bunt(*) => (*, StringToUD("0"))
     rule bunt(@) => (@, StringToUD("0"))
@@ -334,12 +339,14 @@ module HOON-HELPER
     rule name([N1 \ace N2 \ace Ns], P) => name([N1 \ace N2], P) requires Ns ==K .SkinCellImplicit
     rule name([N1 \ace N2 \ace Ns], [P1 \ace P2]) => [name(N1, P1) \ace name([N2 \ace Ns], P2)]
 
+    // Convert the underlying integer in the given Noun to the corresponding
+    // type in Spec
     // TODO Make exhaustive
+    syntax Noun ::= toType(Spec, Noun) [function]
+
     rule toType(@tas, Q:UD) => % StringToTasText(UDToText(Q))
     rule toType([T1 \ace T2], [P \ace Q]) => [toType(T1, P) \ace toType(T2, Q)]
     rule toType(_, Q) => Q [owise]
-
-    syntax Noun ::= toType(Spec, Noun) [function]
 
     // Lark syntax used in lark rules
     syntax LarkString ::= String ":" Cell
