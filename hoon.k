@@ -45,9 +45,13 @@ module HOON-SYNTAX
 
     syntax SubjectExp ::= "\\dot"
                         | Lark
-                        | Lark ":" Hoon [strict(2)]
+                        | TasText
+                        | Skip TasText
+                        | SubjectExp "." SubjectExp
+                        | SubjectExp ":" Hoon [strict(2)]
 
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
+    syntax Skip ::= r"\\^+" [token]
 
     syntax TallForm ::= ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
