@@ -3,7 +3,7 @@ module HOON-SYNTAX
     //  - \ace represents an ace (a single space) and \gap represents a gap
     //  (two or more spaces or a newline). If neither an ace nor a gap is
     //  specified, it is zero spaces.
-    //  - \dot represents "." and is used only for subject expressions, in
+    //  - \dot represents "." and is used only for the current subject, in
     //  other cases "." is left as is.
 
     syntax Hoon ::= TallExp
