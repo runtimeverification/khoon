@@ -13,7 +13,7 @@ def explicit_aces(s):
 
 # Replace '.' with '\dot' if it refers to the current subject
 def replace_dots(s):
-    dots_to_keep = re.findall(r'([0-9]\.+[0-9])|([%]\.+[yn])|(\.[=])|([a-z]\.[a-z])', s)
+    dots_to_keep = re.findall(r'([0-9]\.)|(\.[0-9])|([%]\.[yn])|(\.[=])|([a-z]\.[a-z])', s)
     for tup in dots_to_keep:
         match = ''.join(tup)
         new = match.replace(".", "\\tmpdot")
