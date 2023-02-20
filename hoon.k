@@ -11,10 +11,12 @@ module HOON-SYNTAX
 
     syntax WideExp ::= Noun
                      | SubjectExp
+                     | LookupExp
                      | WideForm
 
     syntax TallExp ::= Noun
                      | SubjectExp
+                     | LookupExp
                      | TallForm
 
     syntax Noun ::= Atom
@@ -48,7 +50,9 @@ module HOON-SYNTAX
                         | TasText
                         | Skip TasText
                         | SubjectExp "." SubjectExp
-                        | SubjectExp ":" Hoon [strict(2)]
+
+    syntax LookupExp ::= SubjectExp ":" Hoon [strict(2)]
+                       | Noun ":" Hoon [strict(2)]
 
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
     syntax Skip ::= r"\\^+" [token]
@@ -140,15 +144,17 @@ module HOON
     rule <k> \dot:Hoon => S ... </k>
          <subject> S </subject>
 
-    // Addressing with lark notation
-    rule <k> L:Lark => L : \dot ... </k>
-    rule <k> L : (_, C:Cell) => LarkToString(L) : C ... </k>
-    rule <k> LS : [P \ace _] => tail(LS) : P ... </k> requires (head(LS) ==K "-") orBool (head(LS) ==K "<")
-    rule <k> LS : [_ \ace Q] => tail(LS) : Q ... </k> requires (head(LS) ==K "+") orBool (head(LS) ==K ">")
-    rule <k> "-" : [P \ace _] => P ... </k>
-    rule <k> "<" : [P \ace _] => P ... </k>
-    rule <k> "+" : [_ \ace Q] => Q ... </k>
-    rule <k> ">" : [_ \ace Q] => Q ... </k>
+    // Lookup wings in the subject
+    rule <k> (P:SubjectExp):TallExp => lookup(toWingStack(P, .WingStack), S, .NounStack, 0) ... </k>
+         <subject> S </subject>
+    rule <k> (P:SubjectExp):WideExp => lookup(toWingStack(P, .WingStack), S, .NounStack, 0) ... </k>
+         <subject> S </subject>
+
+    // Wing the specified noun
+    rule <k> (P : (_, Q)):TallExp => lookup(toWingStack(P, .WingStack), Q, .NounStack, 0) ... </k> [owise]
+    rule <k> (P : (_, Q)):WideExp => lookup(toWingStack(P, .WingStack), Q, .NounStack, 0) ... </k> [owise]
+    rule <k> (P:Noun : _):TallExp => P ... </k>
+    rule <k> (P:Noun : _):WideExp => P ... </k>
 
     // colhep
     rule <k> :- \gap (T1, P) \gap (T2, Q) => ([T1 \ace T2], [P \ace Q]) ... </k>
@@ -352,8 +358,31 @@ module HOON-HELPER
     rule toType([T1 \ace T2], [P \ace Q]) => [toType(T1, P) \ace toType(T2, Q)]
     rule toType(_, Q) => Q [owise]
 
-    // Lark syntax used in lark rules
-    syntax LarkString ::= String ":" Cell
+    // Lark the given noun
+    syntax Noun ::= lark(String, Noun) [function]
+
+    rule lark(L, [P \ace _]) => lark(tail(L), P) requires (head(L) ==K "-") orBool (head(L) ==K "<")
+    rule lark(L, [_ \ace Q]) => lark(tail(L), Q) requires (head(L) ==K "+") orBool (head(L) ==K ">")
+    rule lark("", P) => P
+
+    // Lookup wing in the given noun
+    syntax Noun ::= lookup(WingStack, Noun, NounStack, Int) [function]
+    syntax WingStack ::= List{SubjectExp, "->"}
+    syntax NounStack ::= List{Noun, "->"}
+
+    rule lookup(P:Lark, Q, _, _) => lark(LarkToString(P), Q)
+    rule lookup(P:TasText, Q1 = Q2, _, 0) => Q2 requires P ==K Q1
+    rule lookup(P:TasText, Q = _, R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
+    rule lookup(P:TasText, [Q1 \ace Q2], R, I) => lookup(P, Q1, Q2->R, I)
+    rule lookup(P:TasText, _, R1->R, I) => lookup(P, R1, R, I) [owise]
+    rule lookup(P1:Skip P, Q, R, _) => lookup(P, Q, R, lengthString(SkipToString(P1)))
+    rule lookup(P->PS, Q, R, I) => lookup(PS, lookup(P, Q, R, I), R, I) requires PS =/=K .WingStack
+
+    // Convert wing into a stack of names/larks
+    syntax WingStack ::= toWingStack(SubjectExp, WingStack) [function]
+
+    rule toWingStack(P.Q, R) => toWingStack(Q, P->R)
+    rule toWingStack(P, R) => P->R [owise]
 
     // Helper functions
     syntax TasText ::= StringToTasText(String) [function, total, hook(STRING.string2token)]
@@ -363,6 +392,7 @@ module HOON-HELPER
                     | UDToString(UD) [function, total, hook(STRING.token2string)]
                     | UIToString(UI) [function, total, hook(STRING.token2string)]
                     | LarkToString(Lark) [function, total, hook(STRING.token2string)]
+                    | SkipToString(Skip) [function, total, hook(STRING.token2string)]
 
     syntax String ::= TextToHex(String) [function]
     rule TextToHex(S) => HexOfLastChar(S) +String TextToHex(CutLastChar(S)) requires lengthString(S) >Int 0
