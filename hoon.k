@@ -300,7 +300,9 @@ module HOON-HELPER
     rule weakNests([P1 \ace P2 \ace Ps], [Q1 \ace Q2]) => weakNests(P1, Q1) andBool weakNests([P2 \ace Ps], Q2)
     rule weakNests(_, _) => false [owise]
 
-    // Infer type of noun TODO type union ?(%.y %.n)
+    // Infer type of noun
+    // TODO type union ?(%.y %.n)
+    //      input can be any Hoon, not just nouns (e.g. zapgar a rune exp)
     syntax Spec ::= typeOf(Noun) [function]
 
     rule typeOf(%.y) => ?
