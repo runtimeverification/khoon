@@ -48,14 +48,14 @@ module HOON-SYNTAX
     syntax SubjectExp ::= "\\dot"
                         | Lark
                         | TasText
-                        | Skip TasText
+                        | SkipTasText
                         | SubjectExp "." SubjectExp
 
     syntax LookupExp ::= SubjectExp ":" Hoon [strict(2)]
                        | Noun ":" Hoon [strict(2)]
 
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
-    syntax Skip ::= r"\\^+" [token]
+    syntax SkipTasText ::= r"\\^+[a-z][a-z0-9\\-]*" [token]
 
     syntax TallForm ::= ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -377,7 +377,7 @@ module HOON-HELPER
     rule lookup(P:TasText, Q = _, R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
     rule lookup(P:TasText, [Q1 \ace Q2], R, I) => lookup(P, Q1, Q2->R, I)
     rule lookup(P:TasText, _, R1->R, I) => lookup(P, R1, R, I) [owise]
-    rule lookup(P1:Skip P, Q, R, _) => lookup(P, Q, R, lengthString(SkipToString(P1)))
+    rule lookup(P:SkipTasText, Q, R, _) => lookup(getTasText(P), Q, R, numberOfSkips(P))
     rule lookup(P->PS, Q, R, I) => lookup(PS, lookup(P, Q, R, I), R, I) requires PS =/=K .WingStack
 
     // Convert wing into a stack of names/larks
@@ -394,7 +394,21 @@ module HOON-HELPER
                     | UDToString(UD) [function, total, hook(STRING.token2string)]
                     | UIToString(UI) [function, total, hook(STRING.token2string)]
                     | LarkToString(Lark) [function, total, hook(STRING.token2string)]
-                    | SkipToString(Skip) [function, total, hook(STRING.token2string)]
+                    | SkipTasTextToString(SkipTasText) [function, total, hook(STRING.token2string)]
+
+    syntax TasText ::= getTasText(SkipTasText) [function]
+    rule getTasText(P) => StringToTasText(cutSkips(SkipTasTextToString(P)))
+
+    syntax String ::= cutSkips(String) [function]
+    rule cutSkips(P) => cutSkips(tail(P)) requires head(P) ==String "^"
+    rule cutSkips(P) => P [owise]
+
+    syntax Int ::= numberOfSkips(SkipTasText) [function]
+    rule numberOfSkips(P) => ketPrefixLength(SkipTasTextToString(P))
+
+    syntax Int ::= ketPrefixLength(String) [function]
+    rule ketPrefixLength(P) => ketPrefixLength(tail(P)) +Int 1 requires head(P) ==String "^"
+    rule ketPrefixLength(_) => 0 [owise]
 
     syntax String ::= TextToHex(String) [function]
     rule TextToHex(S) => HexOfLastChar(S) +String TextToHex(CutLastChar(S)) requires lengthString(S) >Int 0
