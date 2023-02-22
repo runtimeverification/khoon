@@ -57,7 +57,12 @@ module HOON-SYNTAX
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
     syntax SkipTasText ::= r"\\^+[a-z][a-z0-9\\-]*" [token]
 
-    syntax TallForm ::= ":-" "\\gap" Hoon "\\gap" Hoon [strict]
+    // TODO Add remaining arms (lus)
+    syntax Arm ::= "++" "\\gap" TasText "\\gap" Hoon
+    syntax ArmList ::= List{Arm, "\\gap"}
+
+    syntax TallForm ::= "|%" "\\gap" ArmList "\\gap" "--" // Does not work with LR(1), but works with GLR
+                      | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
                       | "^-" "\\gap" Spec "\\gap" Hoon [strict(2)]
                       | "^+" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -111,70 +116,65 @@ module HOON-SYNTAX
     syntax SkinCellImplicit ::= List{Skin, "\\ace"}
 endmodule
 
-module HOON-TYPED
-    imports HOON-SYNTAX
-
-    // Used to keep track of the type of a noun
-    syntax TypedNoun ::= "(" Spec "," Noun ")"
-
-    syntax TallExp ::= TypedNoun
-    syntax WideExp ::= TypedNoun
-endmodule
-
 module HOON
     imports HOON-SYNTAX
-    imports HOON-TYPED
+    imports HOON-META
+    imports HOON-CORES
     imports HOON-HELPER
 
     configuration
         <k> $PGM:Hoon </k>
-        <subject> ~:Noun </subject>
+        <subject> ({typeOf(~); .ArmNames}, ~):MetaNoun </subject>
 
-    syntax KResult ::= TypedNoun
+    syntax KResult ::= MetaNoun
 
-    // Convert untyped nouns to typed nouns if not an end result
-    rule <k> (P:Noun):TallExp ~> K:K => (typeOf(P), P) ~> K </k> requires K =/=K .
-    rule <k> (P:Noun):WideExp ~> K:K => (typeOf(P), P) ~> K </k> requires K =/=K .
+    // Convert nouns to meta nouns if not an end result
+    rule <k> (P:Noun):TallExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K .
+    rule <k> (P:Noun):WideExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K .
 
-    // Convert cells of typed nouns to a typed noun
-    rule <k> ([(T1, P) \ace (T2, Q)]):TallExp => ([T1 \ace T2], [P \ace Q]) ... </k>
-    rule <k> ([(T1, P) \ace (T2, Q)]):WideExp => ([T1 \ace T2], [P \ace Q]) ... </k>
+    // Convert cells of meta nouns to a meta noun
+    rule <k> ([({T1; N1}, P) \ace ({T2; N2}, Q)]:Cell):TallExp => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
+    rule <k> ([({T1; N1}, P) \ace ({T2; N2}, Q)]:Cell):WideExp => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
 
     // Current subject
     rule <k> \dot:Hoon => S ... </k>
          <subject> S </subject>
 
     // Lookup wings in the subject
-    rule <k> (P:SubjectExp):TallExp => lookup(toWingStack(P, .WingStack), S, .NounStack, 0) ... </k>
+    rule <k> (P:SubjectExp):TallExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
          <subject> S </subject>
-    rule <k> (P:SubjectExp):WideExp => lookup(toWingStack(P, .WingStack), S, .NounStack, 0) ... </k>
+    rule <k> (P:SubjectExp):WideExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
          <subject> S </subject>
 
     // Wing the specified noun
-    rule <k> (P : (_, Q)):TallExp => lookup(toWingStack(P, .WingStack), Q, .NounStack, 0) ... </k> [owise]
-    rule <k> (P : (_, Q)):WideExp => lookup(toWingStack(P, .WingStack), Q, .NounStack, 0) ... </k> [owise]
+    rule <k> (P : Q):TallExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k> [owise]
+    rule <k> (P : Q):WideExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k> [owise]
     rule <k> (P:Noun : _):TallExp => P ... </k>
     rule <k> (P:Noun : _):WideExp => P ... </k>
 
+    // barcen
+    rule <k> |% \gap P \gap -- => core(P, S) ... </k>
+         <subject> S </subject>
+
     // colhep
-    rule <k> :- \gap (T1, P) \gap (T2, Q) => ([T1 \ace T2], [P \ace Q]) ... </k>
-    rule <k> :-((T1, P) \ace (T2, Q)) => ([T1 \ace T2], [P \ace Q]) ... </k>
+    rule <k> :- \gap ({T1; N1}, P) \gap ({T2; N2}, Q) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
+    rule <k> :-(({T1; N1}, P) \ace ({T2; N2}, Q)) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
 
     // dottis TODO type union ?(%.y %.n)
-    rule <k> .= \gap (_, P:Atom) \gap (_, Q:Atom) => (?, %.y) ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
-    rule <k> .=((_, P:Atom) \ace (_, Q:Atom)) => (?, %.y) ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
-    rule <k> .= \gap (_, P:Cell) \gap (_, Q:Cell) => (?, %.y) ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
-    rule <k> .=((_, P:Cell) \ace (_, Q:Cell)) => (?, %.y) ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
-    rule <k> .= \gap _ \gap _ => (?, %.n) ... </k> [owise]
-    rule <k> .=(_ \ace _) => (?, %.n) ... </k> [owise]
+    rule <k> .= \gap (_, P:Atom) \gap (_, Q:Atom) => ({?; .ArmNames}, %.y) ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
+    rule <k> .=((_, P:Atom) \ace (_, Q:Atom)) => ({?; .ArmNames}, %.y) ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
+    rule <k> .= \gap (_, P:Cell) \gap (_, Q:Cell) => ({?; .ArmNames}, %.y) ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
+    rule <k> .=((_, P:Cell) \ace (_, Q:Cell)) => ({?; .ArmNames}, %.y) ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
+    rule <k> .= \gap _ \gap _ => ({?; .ArmNames}, %.n) ... </k> [owise]
+    rule <k> .=(_ \ace _) => ({?; .ArmNames}, %.n) ... </k> [owise]
 
     // kethep
     rule <k> ^- \gap T \gap Q => ^+ \gap ^* \gap T \gap Q ... </k>
     rule <k> ^-(T \ace Q) => ^+(^*(T) \ace Q) ... </k>
 
     // ketlus
-    rule <k> ^+ \gap (T1, _) \gap (T2, Q) => (T1, toType(T1, Q)) ... </k> requires nests(T1, T2)
-    rule <k> ^+((T1, _) \ace (T2, Q)) => (T1, toType(T1, Q)) ... </k> requires nests(T1, T2)
+    rule <k> ^+ \gap ({T1; _}, _) \gap ({T2; _}, Q) => ({T1; .ArmNames}, toType(T1, Q)) ... </k> requires nests(T1, T2)
+    rule <k> ^+(({T1; _}, _) \ace ({T2; _}, Q)) => ({T1; .ArmNames}, toType(T1, Q)) ... </k> requires nests(T1, T2)
 
     // ketsig TODO
     rule <k> ^~ \gap P => P ... </k>
@@ -189,15 +189,15 @@ module HOON
     rule <k> ^=(N \ace (T, Q)) => (T, name(N, Q)) ... </k>
 
     // tisgar
-    rule <k> => \gap (_, P) \gap Q => Q ... </k>
+    rule <k> => \gap P \gap Q => Q ... </k>
          <subject> _ => P </subject>
-    rule <k> =>((_, P) \ace Q) => Q ... </k>
+    rule <k> => (P \ace Q) => Q ... </k>
          <subject> _ => P </subject>
 
     // tislus
-    rule <k> =+ \gap (_, P) \gap Q => => \gap [P \ace S] \gap Q ... </k>
+    rule <k> =+ \gap P \gap Q => => \gap metaCell(P, S) \gap Q ... </k>
          <subject> S </subject>
-    rule <k> =+((_, P) \ace Q) => =>([P \ace S] \ace Q) ... </k>
+    rule <k> =+(P \ace Q) => =>(metaCell(P, S) \ace Q) ... </k>
          <subject> S </subject>
 
     // wutcol
@@ -211,15 +211,43 @@ module HOON
     rule <k> ?@(P \ace Q \ace R) => ?:(?=(@ \ace P) \ace Q \ace R) ... </k>
 
     // wuttis TODO type union ?(%.y %.n)
-    rule <k> ?= \gap T \gap (_, Q) => (?, %.y) ... </k> requires weakNests(T, Q)
-    rule <k> ?=(T \ace (_, Q)) => (?, %.y) ... </k> requires weakNests(T, Q)
-    rule <k> ?= \gap _ \gap _ => (?, %.n) ... </k> [owise]
-    rule <k> ?=(_ \ace _) => (?, %.n)... </k> [owise]
+    rule <k> ?= \gap T \gap (_, Q) => ({?; .ArmNames}, %.y) ... </k> requires weakNests(T, Q)
+    rule <k> ?=(T \ace (_, Q)) => ({?; .ArmNames}, %.y) ... </k> requires weakNests(T, Q)
+    rule <k> ?= \gap _ \gap _ => ({?; .ArmNames}, %.n) ... </k> [owise]
+    rule <k> ?=(_ \ace _) => ({?; .ArmNames}, %.n) ... </k> [owise]
+endmodule
+
+module HOON-META
+    imports HOON-SYNTAX
+
+    // Used to keep track of meta information of a noun
+    syntax MetaNoun ::= "(" Meta "," Noun ")"
+
+    // Type and list of arm names
+    syntax Meta ::= "{" Spec ";" ArmNames "}"
+
+    syntax ArmNames ::= List{TasText, ","}
+                      | "[" ArmNames "\\ace" ArmNames "]"
+
+    syntax TallExp ::= MetaNoun
+    syntax WideExp ::= MetaNoun
+endmodule
+
+module HOON-CORES
+    imports HOON-SYNTAX
+
+    // Arms are encoded as a list of Hoon code instead of a Nock formula
+    syntax Core ::= "[" Battery "\\ace" Hoon "]" [strict(2)]
+
+    syntax Battery ::= List{Hoon, "\\sep"}
+
+    syntax Noun ::= Core
 endmodule
 
 module HOON-HELPER
     imports HOON-SYNTAX
-    imports HOON-TYPED
+    imports HOON-META
+    imports HOON-CORES
     imports INT
     imports STRING
     imports K-EQUAL
@@ -231,6 +259,16 @@ module HOON-HELPER
     rule [P \ace Q \ace R]:Cell => explicitBrackets([P \ace Q \ace R])
     rule explicitBrackets([P \ace Q \ace R \ace REST]:Cell) => [P \ace explicitBrackets([Q \ace R \ace REST])]
     rule explicitBrackets([P \ace Q \ace .CellImplicit]:Cell) => [P \ace Q]
+
+    // Create a cell from the given nouns
+    syntax Cell ::= cell(Noun, Noun) [function]
+
+    rule cell(P, Q) => [P \ace Q]
+
+    // Create a cell from the given meta nouns
+    syntax Cell ::= metaCell(MetaNoun, MetaNoun) [function]
+
+    rule metaCell(P, Q) => [P \ace Q]
 
     // Convert an atom to its underlying unsigned integer
     syntax Int ::= toUnsignedInt(Atom) [function]
@@ -295,9 +333,9 @@ module HOON-HELPER
     rule weakNests(@ud, _:Atom) => true
     rule weakNests(@ui, _:Atom) => true
     rule weakNests(P:TAS, Q:Atom) => true requires toUnsignedInt(P) ==Int toUnsignedInt(Q)
-    rule weakNests([P1 \ace P2], [Q1 \ace Q2]) => weakNests(P1, Q1) andBool weakNests(P2, Q2)
+    rule weakNests([P1 \ace P2], [Q1 \ace Q2]:Cell) => weakNests(P1, Q1) andBool weakNests(P2, Q2)
     rule weakNests([P1 \ace P2 \ace Ps], Q) => weakNests([P1 \ace P2], Q) requires Ps ==K .SpecCellImplicit
-    rule weakNests([P1 \ace P2 \ace Ps], [Q1 \ace Q2]) => weakNests(P1, Q1) andBool weakNests([P2 \ace Ps], Q2)
+    rule weakNests([P1 \ace P2 \ace Ps], [Q1 \ace Q2]:Cell) => weakNests(P1, Q1) andBool weakNests([P2 \ace Ps], Q2)
     rule weakNests(_, _) => false [owise]
 
     // Infer type of noun
@@ -311,45 +349,46 @@ module HOON-HELPER
     rule typeOf(_:UD) => @ud
     rule typeOf(_:UI) => @ui
     rule typeOf(_:Null) => @ // TODO type of null? %~
-    rule typeOf([P \ace Q]) => [typeOf(P) \ace typeOf(Q)]
+    rule typeOf([P \ace Q]:Cell) => [typeOf(P) \ace typeOf(Q)]
+    rule typeOf([_ \ace Q]:Core) => [* \ace typeOf(Q)]
     rule typeOf(P=Q) => P=typeOf(Q)
 
     // Bunt value of spec
-    syntax TypedNoun ::= bunt(Spec) [function]
+    syntax MetaNoun ::= bunt(Spec) [function]
 
-    rule bunt([P \ace Q]) => ([getSpec(bunt(P)) \ace getSpec(bunt(Q))], [getNoun(bunt(P)) \ace getNoun(bunt(Q))])
+    rule bunt([P \ace Q]) => ({[getSpec(bunt(P)) \ace getSpec(bunt(Q))]; [emptyArmNames(getNoun(bunt(P))) \ace emptyArmNames(getNoun(bunt(Q)))]}, cell(getNoun(bunt(P)), getNoun(bunt(Q))))
     rule bunt([P \ace Q \ace REST]) => bunt([P \ace Q]) requires REST ==K .SpecCellImplicit
-    rule bunt([P \ace Q \ace REST]) => ([getSpec(bunt(P)) \ace getSpec(bunt([Q \ace REST]))], [getNoun(bunt(P)) \ace getNoun(bunt([Q \ace REST]))])
-    rule bunt(P=Q) => (P=getSpec(bunt(Q)), P=getNoun(bunt(Q)))
-    rule bunt(P:TAS) => (P, P)
-    rule bunt(*) => (*, StringToUD("0"))
-    rule bunt(@) => (@, StringToUD("0"))
-    rule bunt(^) => ([* \ace *], [StringToUD("0") \ace StringToUD("0")])
-    rule bunt(?) => (?, %.y) // TODO type should be type union ?(%.y %.n)
-    rule bunt(~) => (~, ~) // TODO zapgar gives: %~
-    rule bunt(@tas) => (@tas, %$)
-    rule bunt(@u) => (@u, StringToUD("0"))
-    rule bunt(@ud) => (@ud, StringToUD("0"))
-    rule bunt(@ui) => (@ui, 0i0)
+    rule bunt([P \ace Q \ace REST]) => ({[getSpec(bunt(P)) \ace getSpec(bunt([Q \ace REST]))]; [emptyArmNames(getNoun(bunt(P))) \ace emptyArmNames(getNoun(bunt(Q)))]}, cell(getNoun(bunt(P)), getNoun(bunt([Q \ace REST]))))
+    rule bunt(P=Q) => ({P=getSpec(bunt(Q)); emptyArmNames(getNoun(bunt(Q)))}, P=getNoun(bunt(Q)))
+    rule bunt(P:TAS) => ({P; .ArmNames}, P)
+    rule bunt(*) => ({*; .ArmNames}, StringToUD("0"))
+    rule bunt(@) => ({@; .ArmNames}, StringToUD("0"))
+    rule bunt(^) => ({[* \ace *]; [.ArmNames \ace .ArmNames]}, cell(StringToUD("0"), StringToUD("0")))
+    rule bunt(?) => ({?; .ArmNames}, %.y) // TODO type should be type union ?(%.y %.n)
+    rule bunt(~) => ({~; .ArmNames}, ~) // TODO zapgar gives: %~
+    rule bunt(@tas) => ({@tas; .ArmNames}, %$)
+    rule bunt(@u) => ({@u; .ArmNames}, StringToUD("0"))
+    rule bunt(@ud) => ({@ud; .ArmNames}, StringToUD("0"))
+    rule bunt(@ui) => ({@ui; .ArmNames}, 0i0)
 
-    // Get noun from typed noun
-    syntax Noun ::= getNoun(TypedNoun) [function]
+    // Get noun from meta noun
+    syntax Noun ::= getNoun(MetaNoun) [function]
 
     rule getNoun((_, N)) => N
 
-    // Get spec (type) from typed noun
-    syntax Spec ::= getSpec(TypedNoun) [function]
+    // Get spec (type) from meta noun
+    syntax Spec ::= getSpec(MetaNoun) [function]
 
-    rule getSpec((T, _)) => T
+    rule getSpec(({T; _}, _)) => T
 
     // Bind a name to a value
     syntax Noun ::= name(Skin, Noun) [function]
 
     rule name(N:TasText, P) => N=P
     rule name(N1=N2, P) => N1=name(N2, P)
-    rule name([N1 \ace N2], [P1 \ace P2]) => [name(N1, P1) \ace name(N2, P2)]
+    rule name([N1 \ace N2], [P1 \ace P2]:Cell) => cell(name(N1, P1), name(N2, P2))
     rule name([N1 \ace N2 \ace Ns], P) => name([N1 \ace N2], P) requires Ns ==K .SkinCellImplicit
-    rule name([N1 \ace N2 \ace Ns], [P1 \ace P2]) => [name(N1, P1) \ace name([N2 \ace Ns], P2)]
+    rule name([N1 \ace N2 \ace Ns], [P1 \ace P2]:Cell) => cell(name(N1, P1), name([N2 \ace Ns], P2))
 
     // Convert the underlying integer in the given Noun to the corresponding
     // type in Spec
@@ -357,34 +396,76 @@ module HOON-HELPER
     syntax Noun ::= toType(Spec, Noun) [function]
 
     rule toType(@tas, Q:UD) => % StringToTasText(UDToText(Q))
-    rule toType([T1 \ace T2], [P \ace Q]) => [toType(T1, P) \ace toType(T2, Q)]
+    rule toType([T1 \ace T2], [P \ace Q]:Cell) => cell(toType(T1, P), toType(T2, Q))
     rule toType(_, Q) => Q [owise]
 
-    // Lark the given noun
-    syntax Noun ::= lark(String, Noun) [function]
+    // Lark the given meta noun
+    syntax MetaNoun ::= lark(String, MetaNoun) [function]
 
-    rule lark(L, [P \ace _]) => lark(tail(L), P) requires (head(L) ==K "-") orBool (head(L) ==K "<")
-    rule lark(L, [_ \ace Q]) => lark(tail(L), Q) requires (head(L) ==K "+") orBool (head(L) ==K ">")
+    rule lark(L, ({[T \ace _]; [N \ace _]}, [P \ace _]:Cell)) => lark(tail(L), ({T; N}, P)) requires (head(L) ==K "-") orBool (head(L) ==K "<")
+    rule lark(L, ({[_ \ace T]; [_ \ace N]}, [_ \ace Q]:Cell)) => lark(tail(L), ({T; N}, Q)) requires (head(L) ==K "+") orBool (head(L) ==K ">")
     rule lark("", P) => P
 
-    // Lookup wing in the given noun
-    syntax Noun ::= lookup(WingStack, Noun, NounStack, Int) [function]
+    // Lookup wing in the given meta noun (Hoon)
+    syntax Hoon ::= lookup(WingStack, Hoon, MetaNounStack, Int) [function]
     syntax WingStack ::= List{SubjectExp, "->"}
-    syntax NounStack ::= List{Noun, "->"}
+    syntax MetaNounStack ::= List{MetaNoun, "->"}
 
     rule lookup(P:Lark, Q, _, _) => lark(LarkToString(P), Q)
-    rule lookup(P:TasText, Q1 = Q2, _, 0) => Q2 requires P ==K Q1
-    rule lookup(P:TasText, Q = _, R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
-    rule lookup(P:TasText, [Q1 \ace Q2], R, I) => lookup(P, Q1, Q2->R, I)
+    rule lookup(P:TasText, ({_ = T; N}, Q1 = Q2), _, 0) => ({T; N}, Q2) requires P ==K Q1
+    rule lookup(P:TasText, ({_; N}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
+    rule lookup(P:TasText, (_, Q = _), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
+    rule lookup(P:TasText, ({_; N}, _:Core), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires nameInList(P, N) andBool I >Int 0
+    rule lookup(P:TasText, ({[T1 \ace T2]; [N1 \ace N2]}, [Q1 \ace Q2]:Cell), R, I) => lookup(P, ({T1; N1}, Q1), ({T2; N2}, Q2)->R, I)
+    rule lookup(P:TasText, ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q2]:Core), R, I) => lookup(P, ({T2; N2}, Q2), R, I) [owise]
     rule lookup(P:TasText, _, R1->R, I) => lookup(P, R1, R, I) [owise]
     rule lookup(P:SkipTasText, Q, R, _) => lookup(getTasText(P), Q, R, numberOfSkips(P))
     rule lookup(P->PS, Q, R, I) => lookup(PS, lookup(P, Q, R, I), R, I) requires PS =/=K .WingStack
+
+    // Get the code in the battery that the wing refers to
+    syntax Hoon ::= coreCode(TasText, ArmNames, Core) [function]
+
+    rule coreCode(P, (N, _), [Q \sep _ \ace _]) => Q requires P ==K N
+    rule coreCode(P, (_, N), [_ \sep Q \ace R]) => coreCode(P, N, [Q \ace R]) [owise]
+
+    // Check if wing is in arm names
+    syntax Bool ::= nameInList(TasText, ArmNames) [function]
+
+    rule nameInList(_, .ArmNames) => false
+    rule nameInList(P, (N, _)) => true requires P ==K N
+    rule nameInList(P, (_, N)) => nameInList(P, N) [owise]
 
     // Convert wing into a stack of names/larks
     syntax WingStack ::= toWingStack(SubjectExp, WingStack) [function]
 
     rule toWingStack(P.Q, R) => toWingStack(Q, P->R)
     rule toWingStack(P, R) => P->R [owise]
+
+    // Construct empty ArmNames matching the noun structure
+    syntax ArmNames ::= emptyArmNames(Noun) [function]
+
+    rule emptyArmNames(_:Atom) => .ArmNames
+    rule emptyArmNames(_:Cell) => [.ArmNames \ace .ArmNames]
+    rule emptyArmNames(_=Q) => emptyArmNames(Q)
+
+    // Get arm names from arms
+    syntax ArmNames ::= armNames(ArmList) [function]
+
+    rule armNames(.ArmList) => .ArmNames
+    rule armNames(++ \gap P \gap _) => P
+    rule armNames(++ \gap P \gap _ \gap REST) => P, armNames(REST)
+
+    // Construct battery from arms
+    syntax Battery ::= battery(ArmList) [function]
+
+    rule battery(.ArmList) => .Battery
+    rule battery(++ \gap _ \gap Q) => Q
+    rule battery(++ \gap _ \gap Q \gap REST) => Q \sep battery(REST)
+
+    // Produce a core from the given arms and payload
+    syntax MetaNoun ::= core(ArmList, MetaNoun) [function]
+
+    rule core(P, R) => ({[* \ace getSpec(R)]; armNames(P)}, [battery(P) \ace getNoun(R)])
 
     // Helper functions
     syntax TasText ::= StringToTasText(String) [function, total, hook(STRING.string2token)]
