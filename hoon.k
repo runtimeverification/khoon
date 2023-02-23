@@ -161,10 +161,8 @@ module HOON
     rule <k> :-(({T1; N1}, P) \ace ({T2; N2}, Q)) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
 
     // dottis TODO type union ?(%.y %.n)
-    rule <k> .= \gap (_, P:Atom) \gap (_, Q:Atom) => ({?; .ArmNames}, %.y) ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
-    rule <k> .=((_, P:Atom) \ace (_, Q:Atom)) => ({?; .ArmNames}, %.y) ... </k> requires (toUnsignedInt(P) ==K toUnsignedInt(Q))
-    rule <k> .= \gap (_, P:Cell) \gap (_, Q:Cell) => ({?; .ArmNames}, %.y) ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
-    rule <k> .=((_, P:Cell) \ace (_, Q:Cell)) => ({?; .ArmNames}, %.y) ... </k> requires (toUnsignedInts(P) ==K toUnsignedInts(Q))
+    rule <k> .= \gap P \gap Q => ({?; .ArmNames}, %.y) ... </k> requires fundEq(P, Q)
+    rule <k> .=(P \ace Q) => ({?; .ArmNames}, %.y) ... </k> requires fundEq(P, Q)
     rule <k> .= \gap _ \gap _ => ({?; .ArmNames}, %.n) ... </k> [owise]
     rule <k> .=(_ \ace _) => ({?; .ArmNames}, %.n) ... </k> [owise]
 
@@ -270,9 +268,19 @@ module HOON-HELPER
 
     rule metaCell(P, Q) => [P \ace Q]
 
+    // Convert each atom in a noun to its underlying unsigned integer
+    syntax IntNoun ::= Int | IntCell
+                     | toUnsignedInts(Noun) [function]
+    syntax IntCell ::= "[" IntNoun IntNoun "]"
+
+    rule toUnsignedInts(P:Atom) => toUnsignedInt(P)
+    rule toUnsignedInts(_=P) => toUnsignedInt(P)
+    rule toUnsignedInts([P \ace Q]:Cell) => [toUnsignedInts(P) toUnsignedInts(Q)]
+
     // Convert an atom to its underlying unsigned integer
     syntax Int ::= toUnsignedInt(Atom) [function]
 
+    rule toUnsignedInt(~) => 0
     rule toUnsignedInt(%A:TasText) => String2Base(TextToHex(TasTextToString(A)), 16)
     rule toUnsignedInt(%.y) => 0
     rule toUnsignedInt(%.n) => 1
@@ -282,15 +290,62 @@ module HOON-HELPER
     rule toUnsignedInt(A:UD) => String2Int(replaceAll(UDToString(A), ".", ""))
     rule toUnsignedInt(A:UI) => String2Int(replaceFirst(UIToString(A), "0i", ""))
 
-    // Convert each atom in a cell to its underlying unsigned integer
-    syntax IntNoun ::= Int | IntCell
-    syntax IntCell ::= "[" IntNoun IntNoun "]"
-                     | toUnsignedInts(Cell) [function]
+    // Check if the nouns are fundamentally equal
+    syntax Bool ::= fundEq(MetaNoun, MetaNoun) [function]
 
-    rule toUnsignedInts([P:Atom \ace Q:Atom]) => [toUnsignedInt(P) toUnsignedInt(Q)]
-    rule toUnsignedInts([P:Atom \ace Q:Cell]) => [toUnsignedInt(P) toUnsignedInts(Q)]
-    rule toUnsignedInts([P:Cell \ace Q:Atom]) => [toUnsignedInts(P) toUnsignedInt(Q)]
-    rule toUnsignedInts([P:Cell \ace Q:Cell]) => [toUnsignedInts(P) toUnsignedInts(Q)]
+    rule fundEq((_, P), (_, Q)) => toUnsignedInts(P) ==K toUnsignedInts(Q) [owise]
+    // Special case for cores because arms are not encoded as Nock formulas
+    rule fundEq(({[_ \ace T2]; [N1 \ace N2]}, [P1 \ace P2]:Core), ({[_ \ace U2]; [M1 \ace M2]}, [Q1 \ace Q2]:Core)) => batteryEq(P1, N1, Q1, M1) andBool fundEq(({T2; N2}, P2), ({U2; M2}, Q2))
+    rule fundEq((_, _:Core), _) => false [priority(51)]
+    rule fundEq(_, (_, _:Core)) => false [priority(51)]
+
+    // Check if batteries are equal
+    syntax Bool ::= batteryEq(Battery, ArmNames, Battery, ArmNames) [function]
+
+    rule batteryEq(P, N1, Q, N2) => eqLength(N1, N2) andBool eqCode(P, Q) andBool sameArmsEq(P, N1, Q, N2)
+
+    // Check if the length of the arm name lists are equal
+    syntax Bool ::= eqLength(ArmNames, ArmNames) [function]
+
+    rule eqLength(.ArmNames, .ArmNames) => true
+    rule eqLength((_, P), (_, Q)) => eqLength(P, Q)
+    rule eqLength(_, _) => false [owise]
+
+    // Check if the batteries contain the same code (assumes equal length)
+    syntax Bool ::= eqCode(Battery, Battery) [function]
+
+    rule eqCode(P:Hoon, Q) => inBattery(P, Q)
+    rule eqCode(P1 \sep P, Q) => inBattery(P1, Q) andBool eqCode(P, Q) [owise]
+
+    // Check if Hoon code is in the battery
+    syntax Bool ::= inBattery(Hoon, Battery) [function]
+
+    rule inBattery(P, Q:Hoon) => P ==K Q
+    rule inBattery(P, Q1 \sep _) => true requires P ==K Q1
+    rule inBattery(P, Q1 \sep Q) => inBattery(P, Q) requires P =/=K Q1
+    rule inBattery(_, _) => false [owise]
+
+    // Check if the arms with the same name in the different batteries contain
+    // the same code (assumes equal length)
+    syntax Bool ::= sameArmsEq(Battery, ArmNames, Battery, ArmNames) [function]
+
+    rule sameArmsEq(P:Hoon, N:TasText, Q, M) => P ==K getBatteryCode(N, Q, M) requires inArm(N, M)
+    rule sameArmsEq(P1 \sep P, (N1, N), Q, M) => P1 ==K getBatteryCode(N1, Q, M) andBool sameArmsEq(P, N, Q, M) requires inArm(N1, M) [priority(51)]
+    rule sameArmsEq(_, _, _, _) => true [owise]
+
+    // Get battery code by arm name
+    syntax Hoon ::= getBatteryCode(TasText, Battery, ArmNames) [function]
+
+    rule getBatteryCode(N, P:Hoon, M:TasText) => P requires N ==K M
+    rule getBatteryCode(N, P1 \sep _, (M1, _)) => P1 requires N ==K M1 [owise]
+    rule getBatteryCode(N, _ \sep P, (M1, M)) => getBatteryCode(N, P, M) requires N =/=K M1 [owise]
+
+    // Check if name is in arm names
+    syntax Bool ::= inArm(TasText, ArmNames) [function]
+
+    rule inArm(N, M:TasText) => N ==K M
+    rule inArm(N, (M1, _)) => true requires N ==K M1 [owise]
+    rule inArm(N, (M1, M)) => inArm(N, M) requires N =/=K M1 [owise]
 
     // Check if the second Spec nests in the first
     syntax Bool ::= nests(Spec, Spec) [function]
@@ -381,6 +436,11 @@ module HOON-HELPER
 
     rule getSpec(({T; _}, _)) => T
 
+    // Get arm names from meta noun
+    syntax ArmNames ::= getArmNames(MetaNoun) [function]
+
+    rule getArmNames(({_; N}, _)) => N
+
     // Bind a name to a value
     syntax Noun ::= name(Skin, Noun) [function]
 
@@ -413,9 +473,9 @@ module HOON-HELPER
 
     rule lookup(P:Lark, Q, _, _) => lark(LarkToString(P), Q)
     rule lookup(P:TasText, ({_ = T; N}, Q1 = Q2), _, 0) => ({T; N}, Q2) requires P ==K Q1
-    rule lookup(P:TasText, ({_; N}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
+    rule lookup(P:TasText, ({_; [N \ace _]}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
     rule lookup(P:TasText, (_, Q = _), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
-    rule lookup(P:TasText, ({_; N}, _:Core), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires nameInList(P, N) andBool I >Int 0
+    rule lookup(P:TasText, ({_; [N \ace _]}, _:Core), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires nameInList(P, N) andBool I >Int 0
     rule lookup(P:TasText, ({[T1 \ace T2]; [N1 \ace N2]}, [Q1 \ace Q2]:Cell), R, I) => lookup(P, ({T1; N1}, Q1), ({T2; N2}, Q2)->R, I)
     rule lookup(P:TasText, ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q2]:Core), R, I) => lookup(P, ({T2; N2}, Q2), R, I) [owise]
     rule lookup(P:TasText, _, R1->R, I) => lookup(P, R1, R, I) [owise]
@@ -465,7 +525,7 @@ module HOON-HELPER
     // Produce a core from the given arms and payload
     syntax MetaNoun ::= core(ArmList, MetaNoun) [function]
 
-    rule core(P, R) => ({[* \ace getSpec(R)]; armNames(P)}, [battery(P) \ace getNoun(R)])
+    rule core(P, R) => ({[* \ace getSpec(R)]; [armNames(P) \ace getArmNames(R)]}, [battery(P) \ace getNoun(R)])
 
     // Helper functions
     syntax TasText ::= StringToTasText(String) [function, total, hook(STRING.string2token)]
