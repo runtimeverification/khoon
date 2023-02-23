@@ -183,8 +183,8 @@ module HOON
     rule <k> ^*(T) => bunt(T) ... </k>
 
     // kettis
-    rule <k> ^= \gap N \gap (T, Q) => (T, name(N, Q)) ... </k>
-    rule <k> ^=(N \ace (T, Q)) => (T, name(N, Q)) ... </k>
+    rule <k> ^= \gap N \gap ({T; M}, Q) => ({N=T; M}, name(N, Q)) ... </k>
+    rule <k> ^=(N \ace ({T; M}, Q)) => ({N=T; M}, name(N, Q)) ... </k>
 
     // tisgar
     rule <k> => \gap P \gap Q => Q ... </k>
