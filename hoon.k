@@ -389,6 +389,7 @@ module HOON-HELPER
     rule weakNests(@ui, _:Atom) => true
     rule weakNests(P:TAS, Q:Atom) => true requires toUnsignedInt(P) ==Int toUnsignedInt(Q)
     rule weakNests([P1 \ace P2], [Q1 \ace Q2]:Cell) => weakNests(P1, Q1) andBool weakNests(P2, Q2)
+    rule weakNests([P1 \ace P2], [Q1 \ace Q2]:Core) => weakNests(P1, Q1) andBool weakNests(P2, Q2)
     rule weakNests([P1 \ace P2 \ace Ps], Q) => weakNests([P1 \ace P2], Q) requires Ps ==K .SpecCellImplicit
     rule weakNests([P1 \ace P2 \ace Ps], [Q1 \ace Q2]:Cell) => weakNests(P1, Q1) andBool weakNests([P2 \ace Ps], Q2)
     rule weakNests(_, _) => false [owise]
