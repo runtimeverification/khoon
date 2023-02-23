@@ -18,8 +18,8 @@ def get_k_res(s):
     i = lines.index("<k>") + 1
     return lines[i][:-3] # remove ending "~>."
 
-# Extract the noun from the typed noun if type info present
-def strip_type_info(s):
+# Extract the noun from the meta noun
+def strip_meta_info(s):
     i = s.find(",")
     if i == -1:
         return s
@@ -32,5 +32,5 @@ with open(input_file) as f:
 res = pretty_spaces(content)
 res = pretty_dots(res)
 res = get_k_res(res)
-res = strip_type_info(res)
+res = strip_meta_info(res)
 print(res)
