@@ -29,12 +29,15 @@ module HOON-SYNTAX
                   | Null
 
     syntax TAS ::= "%" TasText | "%" TasBool | "%" TasNumber
-        syntax TasText ::= r"([a-z][a-z0-9\\-]*)|\\$" [token]
-        syntax TasBool ::= ".y" [token]
-                         | ".n" [token]
-        syntax TasNumber ::= UD | UI
+    syntax TasText ::= r"([a-z][a-z0-9\\-]*)|\\$" [token]
+    syntax TasBool ::= ".y" [token]
+                     | ".n" [token]
+    syntax TasNumber ::= UD | UI
+
     syntax UD ::= r"{UD}" [token]
+
     syntax UI ::= r"{UI}" [token]
+
     syntax Null ::= "~" [token]
 
     syntax lexical UD = r"(0{1})|([1-9]{1}[0-9]{0,2})(\\.(\\\\gap)?[0-9]{3})*"
