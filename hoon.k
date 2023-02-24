@@ -63,7 +63,9 @@ module HOON-SYNTAX
     syntax Arm ::= "++" "\\gap" TasText "\\gap" Hoon
     syntax ArmList ::= List{Arm, "\\gap"}
 
-    syntax TallForm ::= "|%" "\\gap" ArmList "\\gap" "--" // Does not work with LR(1), but works with GLR
+    // |_ |% syntax does not work with LR(1), but works with GLR
+    syntax TallForm ::= "|_" "\\gap" Spec "\\gap" ArmList "\\gap" "--"
+                      | "|%" "\\gap" ArmList "\\gap" "--"
                       | "|=" "\\gap" Spec "\\gap" Hoon
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -157,6 +159,9 @@ module HOON
     rule <k> (P : Q):WideExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k> [owise]
     rule <k> (P:Noun : _):TallExp => P ... </k>
     rule <k> (P:Noun : _):WideExp => P ... </k>
+
+    // barcab
+    rule <k> |_ \gap P \gap Q \gap -- => =| \gap P \gap |% \gap Q \gap -- ... </k>
 
     // barcen
     rule <k> |% \gap P \gap -- => core(P, S) ... </k>
