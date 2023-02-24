@@ -69,6 +69,7 @@ module HOON-SYNTAX
                       | "^~" "\\gap" Hoon [strict]
                       | "^*" "\\gap" Spec
                       | "^=" "\\gap" Skin "\\gap" Hoon [strict(2)]
+                      | "=|" "\\gap" Spec "\\gap" Hoon
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
@@ -83,6 +84,7 @@ module HOON-SYNTAX
                       | "^~" "(" Hoon ")" [strict]
                       | "^*" "(" Spec ")"
                       | "^=" "(" Skin "\\ace" WideExp ")" [strict(2)]
+                      | "=|" "(" Spec "\\ace" WideExp ")"
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
@@ -190,6 +192,10 @@ module HOON
     // kettis
     rule <k> ^= \gap N \gap ({T; M}, Q) => ({N=T; M}, name(N, Q)) ... </k>
     rule <k> ^=(N \ace ({T; M}, Q)) => ({N=T; M}, name(N, Q)) ... </k>
+
+    // tisbar
+    rule <k> =| \gap P \gap Q => =+ \gap ^* \gap P \gap Q ... </k>
+    rule <k> =| (P \ace Q) => =+(^*(P) \ace Q) ... </k>
 
     // tisgar
     rule <k> => \gap P \gap Q => Q ... </k>
