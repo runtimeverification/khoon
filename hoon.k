@@ -28,12 +28,11 @@ module HOON-SYNTAX
                   | UI
                   | Null
 
-    syntax TAS ::= "%" TasText | "%" TasBool | "%" TasNumber | "%" TasEmpty
-        syntax TasText ::= r"[a-z]{1}[a-z0-9\\-]*" [token]
+    syntax TAS ::= "%" TasText | "%" TasBool | "%" TasNumber
+        syntax TasText ::= r"([a-z][a-z0-9\\-]*)|\\$" [token]
         syntax TasBool ::= ".y" [token]
                          | ".n" [token]
         syntax TasNumber ::= UD | UI
-        syntax TasEmpty ::= "$"
     syntax UD ::= r"{UD}" [token]
     syntax UI ::= r"{UI}" [token]
     syntax Null ::= "~" [token]
@@ -62,6 +61,7 @@ module HOON-SYNTAX
     syntax ArmList ::= List{Arm, "\\gap"}
 
     syntax TallForm ::= "|%" "\\gap" ArmList "\\gap" "--" // Does not work with LR(1), but works with GLR
+                      | "|=" "\\gap" Spec "\\gap" Hoon
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
                       | "^-" "\\gap" Spec "\\gap" Hoon [strict(2)]
@@ -75,7 +75,8 @@ module HOON-SYNTAX
                       | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
                       | "?=" "\\gap" Spec "\\gap" Hoon [strict(2)]
 
-    syntax WideForm ::= ":-" "(" WideExp "\\ace" WideExp ")" [strict]
+    syntax WideForm ::= "|=" "(" Spec "\\ace" Hoon ")"
+                      | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
                       | "^-" "(" Spec "\\ace" WideExp ")" [strict(2)]
                       | "^+" "(" WideExp "\\ace" WideExp ")" [strict]
@@ -155,6 +156,10 @@ module HOON
     // barcen
     rule <k> |% \gap P \gap -- => core(P, S) ... </k>
          <subject> S </subject>
+
+    // bartis
+    rule <k> |= \gap P \gap Q => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
+    rule <k> |=(P \ace Q) => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
 
     // colhep
     rule <k> :- \gap ({T1; N1}, P) \gap ({T2; N2}, Q) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
@@ -360,7 +365,6 @@ module HOON-HELPER
     rule nests(~, ~) => true
     rule nests(@tas, %_:TasText) => true
     rule nests(@tas, %_:TasNumber) => true
-    rule nests(@tas, %_:TasEmpty) => true
     rule nests(@tas, @) => true
     rule nests(@u, _:AInt) => true
     rule nests(@u, @) => true
@@ -465,6 +469,7 @@ module HOON-HELPER
 
     rule lark(L, ({[T \ace _]; [N \ace _]}, [P \ace _]:Cell)) => lark(tail(L), ({T; N}, P)) requires (head(L) ==K "-") orBool (head(L) ==K "<")
     rule lark(L, ({[_ \ace T]; [_ \ace N]}, [_ \ace Q]:Cell)) => lark(tail(L), ({T; N}, Q)) requires (head(L) ==K "+") orBool (head(L) ==K ">")
+    rule lark(L, ({[_ \ace T]; [_ \ace N]}, [_ \ace Q]:Core)) => lark(tail(L), ({T; N}, Q)) requires (head(L) ==K "+") orBool (head(L) ==K ">")
     rule lark("", P) => P
 
     // Lookup wing in the given meta noun (Hoon)
