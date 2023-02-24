@@ -64,7 +64,7 @@ module HOON-SYNTAX
                       | "|=" "\\gap" Spec "\\gap" Hoon
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
-                      | "^-" "\\gap" Spec "\\gap" Hoon [strict(2)]
+                      | "^-" "\\gap" Spec "\\gap" Hoon
                       | "^+" "\\gap" Hoon "\\gap" Hoon [strict]
                       | "^~" "\\gap" Hoon [strict]
                       | "^*" "\\gap" Spec
@@ -73,13 +73,13 @@ module HOON-SYNTAX
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
-                      | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
+                      | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon
                       | "?=" "\\gap" Spec "\\gap" Hoon [strict(2)]
 
     syntax WideForm ::= "|=" "(" Spec "\\ace" Hoon ")"
                       | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
-                      | "^-" "(" Spec "\\ace" WideExp ")" [strict(2)]
+                      | "^-" "(" Spec "\\ace" WideExp ")"
                       | "^+" "(" WideExp "\\ace" WideExp ")" [strict]
                       | "^~" "(" Hoon ")" [strict]
                       | "^*" "(" Spec ")"
@@ -88,7 +88,7 @@ module HOON-SYNTAX
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
-                      | "?@" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
+                      | "?@" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")"
                       | "?=" "(" Spec "\\ace" WideExp ")" [strict(2)]
 
     syntax Spec ::= "[" Spec "\\ace" Spec "]"
