@@ -48,6 +48,7 @@ module HOON-SYNTAX
     syntax CellImplicit ::= List{Hoon, "\\ace"}
 
     syntax SubjectExp ::= "\\dot"
+                        | NumAddr
                         | Lark
                         | TasText
                         | SkipTasText
@@ -56,6 +57,7 @@ module HOON-SYNTAX
     syntax LookupExp ::= SubjectExp ":" Hoon [strict(2)]
                        | Noun ":" Hoon [strict(2)]
 
+    syntax NumAddr ::= r"\\+[1-9][0-9]*" [token]
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
     syntax SkipTasText ::= r"\\^+[a-z][a-z0-9\\-]*" [token]
 
@@ -486,11 +488,21 @@ module HOON-HELPER
     rule lark(L, ({[_ \ace T]; [_ \ace N]}, [_ \ace Q]:Core)) => lark(tail(L), ({T; N}, Q)) requires (head(L) ==K "+") orBool (head(L) ==K ">")
     rule lark("", P) => P
 
+    // Convert a positive integer to a lark string
+    syntax String ::= toLarkString(Int) [function]
+
+    rule toLarkString(1) => ""
+    rule toLarkString(I) => toLarkString(I /Int 2) +String "-" requires (I >Int 1) andBool (I %Int 2 ==Int 0) andBool (log2Int(I) %Int 2 =/=Int 0)
+    rule toLarkString(I) => toLarkString(I /Int 2) +String "<" requires (I >Int 1) andBool (I %Int 2 ==Int 0) andBool (log2Int(I) %Int 2 ==Int 0)
+    rule toLarkString(I) => toLarkString((I -Int 1) /Int 2) +String "+" requires (I >Int 1) andBool (I %Int 2 =/=Int 0) andBool (log2Int(I) %Int 2 =/=Int 0)
+    rule toLarkString(I) => toLarkString((I -Int 1) /Int 2) +String ">" requires (I >Int 1) andBool (I %Int 2 =/=Int 0) andBool (log2Int(I) %Int 2 ==Int 0)
+
     // Lookup wing in the given meta noun (Hoon)
     syntax Hoon ::= lookup(WingStack, Hoon, MetaNounStack, Int) [function]
     syntax WingStack ::= List{SubjectExp, "->"}
     syntax MetaNounStack ::= List{MetaNoun, "->"}
 
+    rule lookup(P:NumAddr, Q, _, _) => lark(toLarkString(NumAddrToInt(P)), Q)
     rule lookup(P:Lark, Q, _, _) => lark(LarkToString(P), Q)
     rule lookup(P:TasText, ({_ = T; N}, Q1 = Q2), _, 0) => ({T; N}, Q2) requires P ==K Q1
     rule lookup(P:TasText, ({_; [N \ace _]}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
@@ -556,6 +568,10 @@ module HOON-HELPER
                     | UIToString(UI) [function, total, hook(STRING.token2string)]
                     | LarkToString(Lark) [function, total, hook(STRING.token2string)]
                     | SkipTasTextToString(SkipTasText) [function, total, hook(STRING.token2string)]
+                    | NumAddrToString(NumAddr) [function, total, hook(STRING.token2string)]
+
+    syntax Int ::= NumAddrToInt(NumAddr) [function]
+    rule NumAddrToInt(P) => String2Int(tail(NumAddrToString(P)))
 
     syntax TasText ::= getTasText(SkipTasText) [function]
     rule getTasText(P) => StringToTasText(cutSkips(SkipTasTextToString(P)))
