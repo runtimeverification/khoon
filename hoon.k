@@ -22,6 +22,7 @@ module HOON-SYNTAX
     syntax Noun ::= Atom
                   | Cell
                   | TasText "=" Noun
+                  | Digraph
 
     syntax Atom ::= TAS
                   | UD
@@ -84,6 +85,7 @@ module HOON-SYNTAX
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
+                      | "?<" "\\gap" Hoon "\\gap" Hoon
                       | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon
                       | "?=" "\\gap" Spec "\\gap" Hoon [strict(2)]
 
@@ -103,8 +105,11 @@ module HOON-SYNTAX
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
+                      | "?<" "(" WideExp "\\ace" WideExp ")"
                       | "?@" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")"
                       | "?=" "(" Spec "\\ace" WideExp ")" [strict(2)]
+
+    syntax Digraph ::= "!!"
 
     syntax Spec ::= "[" Spec "\\ace" Spec "]"
                   | "[" Spec "\\ace" Spec "\\ace" SpecCellImplicit "]"
@@ -248,6 +253,10 @@ module HOON
     rule <k> ?: \gap (_, %.n) \gap _ \gap R => R ... </k>
     rule <k> ?:((_, %.y) \ace Q \ace _) => Q ... </k>
     rule <k> ?:((_, %.n) \ace _ \ace R) => R ... </k>
+
+    // wutgal
+    rule <k> ?< \gap P \gap Q => ?: \gap P \gap !! \gap Q ... </k>
+    rule <k> ?<(P \ace Q) => ?:(P \ace !! \ace Q) ... </k>
 
     // wutpat
     rule <k> ?@ \gap P \gap Q \gap R => ?: \gap ?= \gap @ \gap P \gap Q \gap R ... </k>
@@ -452,6 +461,7 @@ module HOON-HELPER
     rule typeOf([P \ace Q]:Cell) => [typeOf(P) \ace typeOf(Q)]
     rule typeOf([_ \ace Q]:Core) => [* \ace typeOf(Q)]
     rule typeOf(P=Q) => P=typeOf(Q)
+    rule typeOf(!!) => % StringToTasText("void")
 
     // Bunt value of spec
     syntax MetaNoun ::= bunt(Spec) [function]
@@ -561,9 +571,9 @@ module HOON-HELPER
     // Construct empty ArmNames matching the noun structure
     syntax ArmNames ::= emptyArmNames(Noun) [function]
 
-    rule emptyArmNames(_:Atom) => .ArmNames
-    rule emptyArmNames(_:Cell) => [.ArmNames \ace .ArmNames]
     rule emptyArmNames(_=Q) => emptyArmNames(Q)
+    rule emptyArmNames(_:Cell) => [.ArmNames \ace .ArmNames]
+    rule emptyArmNames(_) => .ArmNames [owise]
 
     // Get arm names from arms
     syntax ArmNames ::= armNames(ArmList) [function]
