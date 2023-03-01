@@ -78,6 +78,7 @@ module HOON-SYNTAX
                       | "^*" "\\gap" Spec
                       | "^=" "\\gap" Skin "\\gap" Hoon [strict(2)]
                       | "=|" "\\gap" Spec "\\gap" Hoon
+                      | "=<" "\\gap" Hoon "\\gap" Hoon
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
@@ -94,6 +95,7 @@ module HOON-SYNTAX
                       | "^*" "(" Spec ")"
                       | "^=" "(" Skin "\\ace" WideExp ")" [strict(2)]
                       | "=|" "(" Spec "\\ace" WideExp ")"
+                      | "=<" "(" WideExp "\\ace" WideExp ")"
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
@@ -212,6 +214,10 @@ module HOON
     // tisbar
     rule <k> =| \gap P \gap Q => =+ \gap ^* \gap P \gap Q ... </k>
     rule <k> =| (P \ace Q) => =+(^*(P) \ace Q) ... </k>
+
+    // tisgal
+    rule <k> =< \gap P \gap Q => => \gap Q \gap P ... </k>
+    rule <k> =<(P \ace Q) => =>(Q \ace P) ... </k>
 
     // tisgar
     rule <k> => \gap P \gap Q => Q ... </k>
