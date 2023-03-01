@@ -68,6 +68,7 @@ module HOON-SYNTAX
     // |_ |% syntax does not work with LR(1), but works with GLR
     syntax TallForm ::= "|_" "\\gap" Spec "\\gap" ArmList "\\gap" "--"
                       | "|%" "\\gap" ArmList "\\gap" "--"
+                      | "|." "\\gap" Hoon
                       | "|=" "\\gap" Spec "\\gap" Hoon
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -83,7 +84,8 @@ module HOON-SYNTAX
                       | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon
                       | "?=" "\\gap" Spec "\\gap" Hoon [strict(2)]
 
-    syntax WideForm ::= "|=" "(" Spec "\\ace" Hoon ")"
+    syntax WideForm ::= "|." "(" Hoon ")"
+                      | "|=" "(" Spec "\\ace" Hoon ")"
                       | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
                       | "^-" "(" Spec "\\ace" WideExp ")"
@@ -168,6 +170,10 @@ module HOON
     // barcen
     rule <k> |% \gap P \gap -- => core(P, S) ... </k>
          <subject> S </subject>
+
+    // bardot
+    rule <k> |. \gap P => |% \gap ++ \gap $ \gap P \gap -- ... </k>
+    rule <k> |.(P) => |% \gap ++ \gap $ \gap P \gap -- ... </k>
 
     // bartis
     rule <k> |= \gap P \gap Q => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
