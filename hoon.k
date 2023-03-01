@@ -69,6 +69,7 @@ module HOON-SYNTAX
     syntax TallForm ::= "|_" "\\gap" Spec "\\gap" ArmList "\\gap" "--"
                       | "|%" "\\gap" ArmList "\\gap" "--"
                       | "|." "\\gap" Hoon
+                      | "|-" "\\gap" Hoon
                       | "|=" "\\gap" Spec "\\gap" Hoon
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -86,6 +87,7 @@ module HOON-SYNTAX
                       | "?=" "\\gap" Spec "\\gap" Hoon [strict(2)]
 
     syntax WideForm ::= "|." "(" Hoon ")"
+                      | "|-" "(" Hoon ")"
                       | "|=" "(" Spec "\\ace" Hoon ")"
                       | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
@@ -176,6 +178,10 @@ module HOON
     // bardot
     rule <k> |. \gap P => |% \gap ++ \gap $ \gap P \gap -- ... </k>
     rule <k> |.(P) => |% \gap ++ \gap $ \gap P \gap -- ... </k>
+
+    // barhep
+    rule <k> |- \gap P => =< \gap $ \gap |. \gap P ... </k>
+    rule <k> |-(P) => =<($ \ace |.(P)) ... </k>
 
     // bartis
     rule <k> |= \gap P \gap Q => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
