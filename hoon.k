@@ -72,6 +72,7 @@ module HOON-SYNTAX
                       | "|-" "\\gap" Hoon
                       | "|=" "\\gap" Spec "\\gap" Hoon
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
+                      | ".+" "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
                       | "^-" "\\gap" Spec "\\gap" Hoon
                       | "^+" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -90,6 +91,7 @@ module HOON-SYNTAX
                       | "|-" "(" Hoon ")"
                       | "|=" "(" Spec "\\ace" Hoon ")"
                       | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
+                      | ".+" "(" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
                       | "^-" "(" Spec "\\ace" WideExp ")"
                       | "^+" "(" WideExp "\\ace" WideExp ")" [strict]
@@ -190,6 +192,10 @@ module HOON
     // colhep
     rule <k> :- \gap ({T1; N1}, P) \gap ({T2; N2}, Q) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
     rule <k> :-(({T1; N1}, P) \ace ({T2; N2}, Q)) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
+
+    // dotlus
+    rule <k> .+ \gap (_, P) => ({@; .ArmNames}, IntToUD(toUnsignedInt(P) +Int 1)) ... </k>
+    rule <k> .+((_, P)) => ({@; .ArmNames}, IntToUD(toUnsignedInt(P) +Int 1)) ... </k>
 
     // dottis TODO type union ?(%.y %.n)
     rule <k> .= \gap P \gap Q => ({?; .ArmNames}, %.y) ... </k> requires fundEq(P, Q)
@@ -495,6 +501,7 @@ module HOON-HELPER
     syntax Noun ::= toType(Spec, Noun) [function]
 
     rule toType(@tas, Q:UD) => % StringToTasText(UDToText(Q))
+    rule toType(@, Q:Atom) => IntToUD(toUnsignedInt(Q))
     rule toType([T1 \ace T2], [P \ace Q]:Cell) => cell(toType(T1, P), toType(T2, Q))
     rule toType(_, Q) => Q [owise]
 
@@ -587,6 +594,13 @@ module HOON-HELPER
                     | LarkToString(Lark) [function, total, hook(STRING.token2string)]
                     | SkipTasTextToString(SkipTasText) [function, total, hook(STRING.token2string)]
                     | NumAddrToString(NumAddr) [function, total, hook(STRING.token2string)]
+
+    syntax UD ::= IntToUD(Int) [function]
+    rule IntToUD(P) => StringToUD(IntStringToUDString(Int2String(P)))
+
+    syntax String ::= IntStringToUDString(String) [function]
+    rule IntStringToUDString(P) => P requires lengthString(P) <=Int 3
+    rule IntStringToUDString(P) => IntStringToUDString(substrString(P, 0, lengthString(P) -Int 3)) +String ("." +String substrString(P, lengthString(P) -Int 3, lengthString(P))) requires lengthString(P) >Int 3
 
     syntax Int ::= NumAddrToInt(NumAddr) [function]
     rule NumAddrToInt(P) => String2Int(tail(NumAddrToString(P)))
