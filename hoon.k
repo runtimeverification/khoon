@@ -72,6 +72,7 @@ module HOON-SYNTAX
                       | "|." "\\gap" Hoon
                       | "|-" "\\gap" Hoon
                       | "|=" "\\gap" Spec "\\gap" Hoon
+                      | "%~" "\\gap" TasText "\\gap" Hoon "\\gap" Hoon [strict(2,3)]
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".+" "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -92,6 +93,7 @@ module HOON-SYNTAX
     syntax WideForm ::= "|." "(" Hoon ")"
                       | "|-" "(" Hoon ")"
                       | "|=" "(" Spec "\\ace" Hoon ")"
+                      | "%~" "(" TasText "\\ace" WideExp "\\ace" WideExp ")" [strict(2,3)]
                       | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".+" "(" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
@@ -147,9 +149,21 @@ module HOON
 
     configuration
         <k> $PGM:Hoon </k>
-        <subject> ({typeOf(~); .ArmNames}, ~):MetaNoun </subject>
+        <subject> (({typeOf(~); .ArmNames}, ~)->.Subject):Subject </subject>
+
+    syntax Subject ::= List{MetaNoun, "->"}
 
     syntax KResult ::= MetaNoun
+
+    // Make the given noun the subject
+    syntax Hoon ::= push(MetaNoun)
+    rule <k> push(P) ~> K => K </k>
+         <subject> S => P->S </subject>
+
+    // Make the preceding noun the subject
+    syntax Hoon ::= pop()
+    rule <k> P:MetaNoun ~> pop() ~> K => P ~> K </k>
+         <subject> _->S => S </subject>
 
     // Convert nouns to meta nouns if not an end result
     rule <k> (P:Noun):TallExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K .
@@ -161,13 +175,13 @@ module HOON
 
     // Current subject
     rule <k> \dot:Hoon => S ... </k>
-         <subject> S </subject>
+         <subject> S->_ </subject>
 
     // Lookup wings in the subject
     rule <k> (P:SubjectExp):TallExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
-         <subject> S </subject>
+         <subject> S->_ </subject>
     rule <k> (P:SubjectExp):WideExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
-         <subject> S </subject>
+         <subject> S->_ </subject>
 
     // Wing the specified noun
     rule <k> (P : Q):TallExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k> [owise]
@@ -179,8 +193,8 @@ module HOON
     rule <k> |_ \gap P \gap Q \gap -- => =| \gap P \gap |% \gap Q \gap -- ... </k>
 
     // barcen
-    rule <k> |% \gap P \gap -- => core(P, S) ... </k>
-         <subject> S </subject>
+    rule <k> |% \gap P \gap -- => buildCore(P, S) ... </k>
+         <subject> S->_ </subject>
 
     // bardot
     rule <k> |. \gap P => |% \gap ++ \gap $ \gap P \gap -- ... </k>
@@ -193,6 +207,10 @@ module HOON
     // bartis
     rule <k> |= \gap P \gap Q => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
     rule <k> |=(P \ace Q) => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
+
+    // censig
+    rule <k> %~ \gap P \gap ({T; [N1 \ace N2]}, [Q1 \ace Q2]:Core) \gap R => push(substWithAddr(replaceValues(unname(R), addr(StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))), StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))) ~> getBatteryCode(P, Q1, N1) ~> pop() ... </k>
+    rule <k> %~(P \ace ({T; [N1 \ace N2]}, [Q1 \ace Q2]:Core) \ace R) => push(substWithAddr(replaceValues(unname(R), addr(StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))), StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))) ~> getBatteryCode(P, Q1, N1) ~> pop() ... </k>
 
     // colhep
     rule <k> :- \gap ({T1; N1}, P) \gap ({T2; N2}, Q) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
@@ -225,8 +243,8 @@ module HOON
     rule <k> ^*(T) => bunt(T) ... </k>
 
     // kettis
-    rule <k> ^= \gap N \gap ({T; M}, Q) => ({N=T; M}, name(N, Q)) ... </k>
-    rule <k> ^=(N \ace ({T; M}, Q)) => ({N=T; M}, name(N, Q)) ... </k>
+    rule <k> ^= \gap P \gap Q => name(P, Q) ... </k>
+    rule <k> ^=(P \ace Q) => name(P, Q) ... </k>
 
     // tisbar
     rule <k> =| \gap P \gap Q => =+ \gap ^* \gap P \gap Q ... </k>
@@ -238,15 +256,15 @@ module HOON
 
     // tisgar
     rule <k> => \gap P \gap Q => Q ... </k>
-         <subject> _ => P </subject>
+         <subject> _ => P->.Subject </subject>
     rule <k> => (P \ace Q) => Q ... </k>
-         <subject> _ => P </subject>
+         <subject> _ => P->.Subject </subject>
 
     // tislus
     rule <k> =+ \gap P \gap Q => => \gap metaCell(P, S) \gap Q ... </k>
-         <subject> S </subject>
+         <subject> S->_ </subject>
     rule <k> =+(P \ace Q) => =>(metaCell(P, S) \ace Q) ... </k>
-         <subject> S </subject>
+         <subject> S->_ </subject>
 
     // wutcol
     rule <k> ?: \gap (_, %.y) \gap Q \gap _ => Q ... </k>
@@ -317,10 +335,15 @@ module HOON-HELPER
 
     rule cell(P, Q) => [P \ace Q]
 
-    // Create a cell from the given meta nouns
-    syntax Cell ::= metaCell(MetaNoun, MetaNoun) [function]
+    // Create a meta cell from the given meta nouns
+    syntax MetaNoun ::= metaCell(MetaNoun, MetaNoun) [function]
 
-    rule metaCell(P, Q) => [P \ace Q]
+    rule metaCell(({T1; N1}, P), ({T2; N2}, Q)) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q))
+
+    // Create a core cell
+    syntax Core ::= core(Battery, Noun) [function]
+
+    rule core(P, Q) => [P \ace Q]
 
     // Convert each atom in a noun to its underlying unsigned integer
     syntax IntNoun ::= Int | IntCell
@@ -497,13 +520,13 @@ module HOON-HELPER
     rule getArmNames(({_; N}, _)) => N
 
     // Bind a name to a value
-    syntax Noun ::= name(Skin, Noun) [function]
+    syntax MetaNoun ::= name(Skin, MetaNoun) [function]
 
-    rule name(N:TasText, P) => N=P
-    rule name(N1=N2, P) => N1=name(N2, P)
-    rule name([N1 \ace N2], [P1 \ace P2]:Cell) => cell(name(N1, P1), name(N2, P2))
+    rule name(N:TasText, ({T; M}, P)) => ({N=T; M}, N=P)
+    rule name(N1=N2, ({T; M}, P)) => ({N1=getSpec(name(N2, ({T; M}, P))); M}, N1=getNoun(name(N2, ({T; M}, P))))
+    rule name([N1 \ace N2], ({[T1 \ace T2]; [M1 \ace M2]}, [P1 \ace P2]:Cell)) => metaCell(name(N1, ({T1; M1}, P1)), name(N2, ({T2; M2}, P2)))
     rule name([N1 \ace N2 \ace Ns], P) => name([N1 \ace N2], P) requires Ns ==K .SkinCellImplicit
-    rule name([N1 \ace N2 \ace Ns], [P1 \ace P2]:Cell) => cell(name(N1, P1), name([N2 \ace Ns], P2))
+    rule name([N1 \ace N2 \ace Ns], ({[T1 \ace T2]; [M1 \ace M2]}, [P1 \ace P2]:Cell)) => metaCell(name(N1, ({T1; M1}, P1)), name([N2 \ace Ns], ({T2; M2}, P2)))
 
     // Convert the underlying integer in the given Noun to the corresponding
     // type in Spec
@@ -518,10 +541,16 @@ module HOON-HELPER
     // Lark the given meta noun
     syntax MetaNoun ::= lark(String, MetaNoun) [function]
 
+    rule lark(L, ({_=T; N}, _=P)) => lark(L, ({T; N}, P))
     rule lark(L, ({[T \ace _]; [N \ace _]}, [P \ace _]:Cell)) => lark(tail(L), ({T; N}, P)) requires (head(L) ==K "-") orBool (head(L) ==K "<")
     rule lark(L, ({[_ \ace T]; [_ \ace N]}, [_ \ace Q]:Cell)) => lark(tail(L), ({T; N}, Q)) requires (head(L) ==K "+") orBool (head(L) ==K ">")
     rule lark(L, ({[_ \ace T]; [_ \ace N]}, [_ \ace Q]:Core)) => lark(tail(L), ({T; N}, Q)) requires (head(L) ==K "+") orBool (head(L) ==K ">")
     rule lark("", P) => P
+
+    // Get meta noun at address
+    syntax MetaNoun ::= addr(NumAddr, MetaNoun) [function]
+
+    rule addr(P, Q) => lark(toLarkString(NumAddrToInt(P)), Q)
 
     // Convert a positive integer to a lark string
     syntax String ::= toLarkString(Int) [function]
@@ -537,7 +566,7 @@ module HOON-HELPER
     syntax WingStack ::= List{SubjectExp, "->"}
     syntax MetaNounStack ::= List{MetaNoun, "->"}
 
-    rule lookup(P:NumAddr, Q, _, _) => lark(toLarkString(NumAddrToInt(P)), Q)
+    rule lookup(P:NumAddr, Q, _, _) => addr(P, Q)
     rule lookup(P:Lark, Q, _, _) => lark(LarkToString(P), Q)
     rule lookup(P:TasText, ({_ = T; N}, Q1 = Q2), _, 0) => ({T; N}, Q2) requires P ==K Q1
     rule lookup(P:TasText, ({_; [N \ace _]}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
@@ -590,13 +619,56 @@ module HOON-HELPER
     rule battery(++ \gap _ \gap Q \gap REST) => Q \sep battery(REST)
 
     // Produce a core from the given arms and payload
-    syntax MetaNoun ::= core(ArmList, MetaNoun) [function]
+    syntax MetaNoun ::= buildCore(ArmList, MetaNoun) [function]
 
-    rule core(P, R) => ({[* \ace getSpec(R)]; [armNames(P) \ace getArmNames(R)]}, [battery(P) \ace getNoun(R)])
+    rule buildCore(P, R) => ({[* \ace getSpec(R)]; [armNames(P) \ace getArmNames(R)]}, [battery(P) \ace getNoun(R)])
+
+    // In the second noun, replace the noun at the numeric address with the
+    // first noun
+    syntax MetaNoun ::= substWithAddr(MetaNoun, NumAddr, MetaNoun) [function]
+
+    rule substWithAddr(P, A, S) => substWithLarkString(P, toLarkString(NumAddrToInt(A)), S)
+
+    // In the second noun, replace the noun at the lark string with the first
+    // noun
+    syntax MetaNoun ::= substWithLarkString(MetaNoun, String, MetaNoun) [function]
+
+    rule substWithLarkString(P, "", _) => P
+    rule substWithLarkString(P, L, S) => substWithLarkString(replLeft(P, lark(init(L), S)), init(L), S) requires last(L) ==K "-" orBool last(L) ==K "<" [owise]
+    rule substWithLarkString(P, L, S) => substWithLarkString(replRight(P, lark(init(L), S)), init(L), S) requires last(L) ==K "+" orBool last(L) ==K ">" [owise]
+
+    // Replace the left part of a cell or a core with the first noun
+    syntax MetaNoun ::= replLeft(MetaNoun, MetaNoun) [function]
+
+    rule replLeft(({T1; N1}, P), ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Cell)) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q))
+    rule replLeft(({T1; N1}, P), ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Core)) => ({[T1 \ace T2]; [N1 \ace N2]}, core(P, Q))
+
+    // Replace the right part of a cell or a core with the first noun
+    syntax MetaNoun ::= replRight(MetaNoun, MetaNoun) [function]
+
+    rule replRight(({T1; N1}, P), ({[T2 \ace _]; [N2 \ace _]}, [Q \ace _]:Cell)) => ({[T2 \ace T1]; [N2 \ace N1]}, cell(Q, P))
+    rule replRight(({T1; N1}, P), ({[T2 \ace _]; [N2 \ace _]}, [Q \ace _]:Core)) => ({[T2 \ace T1]; [N2 \ace N1]}, core(Q, P))
+
+    // Replace the values in the second noun with the values of the first,
+    // keeping the names in the second
+    syntax MetaNoun ::= replaceValues(MetaNoun, MetaNoun) [function]
+
+    rule replaceValues(P, ({F=T2; N2}, F=Q)) => name(F, replaceValues(P, ({T2; N2}, Q)))
+    rule replaceValues(P, ({[T1 \ace T2]; [N1 \ace N2]}, [Q1 \ace Q2]:Cell)) => metaCell(replaceValues(P, ({T1; N1}, Q1)), replaceValues(P, ({T2; N2}, Q2)))
+    rule replaceValues(P, _) => P [owise]
+
+    // Clear the noun of names
+    syntax MetaNoun ::= unname(MetaNoun) [function]
+
+    rule unname(({_=T; N}, _=P)) => unname(({T; N}, P))
+    rule unname(({[T1 \ace T2]; [N1 \ace N2]}, [P \ace Q]:Cell)) => metaCell(unname(({T1; N1}, P)), unname(({T2; N2}, Q)))
+    rule unname(({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Cell)) => unname(({T2; N2}, Q))
+    rule unname(P) => P [owise]
 
     // Helper functions
     syntax TasText ::= StringToTasText(String) [function, total, hook(STRING.string2token)]
     syntax UD ::= StringToUD(String) [function, total, hook(STRING.string2token)]
+    syntax NumAddr ::= StringToNumAddr(String) [function, total, hook(STRING.string2token)]
 
     syntax String ::= TasTextToString(TasText) [function, total, hook(STRING.token2string)]
                     | UDToString(UD) [function, total, hook(STRING.token2string)]
@@ -657,4 +729,10 @@ module HOON-HELPER
 
     syntax String ::= tail(String) [function]
     rule tail(S) => substrString(S, 1, lengthString(S))
+
+    syntax String ::= init(String) [function]
+    rule init(S) => substrString(S, 0, lengthString(S) -Int 1)
+
+    syntax String ::= last(String) [function]
+    rule last(S) => substrString(S, lengthString(S) -Int 1, lengthString(S))
 endmodule
