@@ -72,6 +72,7 @@ module HOON-SYNTAX
                       | "|." "\\gap" Hoon
                       | "|-" "\\gap" Hoon
                       | "|=" "\\gap" Spec "\\gap" Hoon
+                      | "%-" "\\gap" Hoon "\\gap" Hoon
                       | "%~" "\\gap" TasText "\\gap" Hoon "\\gap" Hoon [strict(2,3)]
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".+" "\\gap" Hoon [strict]
@@ -93,6 +94,7 @@ module HOON-SYNTAX
     syntax WideForm ::= "|." "(" Hoon ")"
                       | "|-" "(" Hoon ")"
                       | "|=" "(" Spec "\\ace" Hoon ")"
+                      | "%-" "(" WideExp "\\ace" WideExp ")"
                       | "%~" "(" TasText "\\ace" WideExp "\\ace" WideExp ")" [strict(2,3)]
                       | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".+" "(" WideExp ")" [strict]
@@ -207,6 +209,10 @@ module HOON
     // bartis
     rule <k> |= \gap P \gap Q => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
     rule <k> |=(P \ace Q) => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
+
+    // cenhep
+    rule <k> %- \gap P \gap Q => %~ \gap $ \gap P \gap Q ... </k>
+    rule <k> %-(P \ace Q) => %~($ \ace P \ace Q) ... </k>
 
     // censig
     rule <k> %~ \gap P \gap ({T; [N1 \ace N2]}, [Q1 \ace Q2]:Core) \gap R => push(substWithAddr(replaceValues(unname(R), addr(StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))), StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))) ~> getBatteryCode(P, Q1, N1) ~> pop() ... </k>
@@ -654,7 +660,7 @@ module HOON-HELPER
     syntax MetaNoun ::= replaceValues(MetaNoun, MetaNoun) [function]
 
     rule replaceValues(P, ({F=T2; N2}, F=Q)) => name(F, replaceValues(P, ({T2; N2}, Q)))
-    rule replaceValues(P, ({[T1 \ace T2]; [N1 \ace N2]}, [Q1 \ace Q2]:Cell)) => metaCell(replaceValues(P, ({T1; N1}, Q1)), replaceValues(P, ({T2; N2}, Q2)))
+    rule replaceValues(({[T1 \ace T2]; [N1 \ace N2]}, [P1 \ace P2]:Cell), ({[T3 \ace T4]; [N3 \ace N4]}, [Q1 \ace Q2]:Cell)) => metaCell(replaceValues(({T1; N1}, P1), ({T3; N3}, Q1)), replaceValues(({T2; N2}, P2), ({T4; N4}, Q2)))
     rule replaceValues(P, _) => P [owise]
 
     // Clear the noun of names
@@ -662,7 +668,7 @@ module HOON-HELPER
 
     rule unname(({_=T; N}, _=P)) => unname(({T; N}, P))
     rule unname(({[T1 \ace T2]; [N1 \ace N2]}, [P \ace Q]:Cell)) => metaCell(unname(({T1; N1}, P)), unname(({T2; N2}, Q)))
-    rule unname(({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Cell)) => unname(({T2; N2}, Q))
+    rule unname(({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Core)) => unname(({T2; N2}, Q))
     rule unname(P) => P [owise]
 
     // Helper functions
