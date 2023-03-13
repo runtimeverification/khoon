@@ -10,11 +10,13 @@ module HOON-SYNTAX
                   | WideExp
 
     syntax WideExp ::= Noun
+                     | Spec
                      | SubjectExp
                      | LookupExp
                      | WideForm
 
     syntax TallExp ::= Noun
+                     | Spec
                      | SubjectExp
                      | LookupExp
                      | TallForm
@@ -72,6 +74,7 @@ module HOON-SYNTAX
                       | "|." "\\gap" Hoon
                       | "|-" "\\gap" Hoon
                       | "|=" "\\gap" Spec "\\gap" Hoon
+                      | "$=" "\\gap" Skin "\\gap" Spec
                       | "%-" "\\gap" Hoon "\\gap" Hoon
                       | "%~" "\\gap" TasText "\\gap" Hoon "\\gap" Hoon [strict(2,3)]
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -94,6 +97,7 @@ module HOON-SYNTAX
     syntax WideForm ::= "|." "(" Hoon ")"
                       | "|-" "(" Hoon ")"
                       | "|=" "(" Spec "\\ace" Hoon ")"
+                      | "$=" "(" Skin "\\ace" Spec ")"
                       | "%-" "(" WideExp "\\ace" WideExp ")"
                       | "%~" "(" TasText "\\ace" WideExp "\\ace" WideExp ")" [strict(2,3)]
                       | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
@@ -115,7 +119,7 @@ module HOON-SYNTAX
 
     syntax Digraph ::= "!!"
 
-    syntax Spec ::= "[" Spec "\\ace" Spec "]"
+    syntax Spec ::= "[" Spec "\\ace" Spec "]" [avoid]
                   | "[" Spec "\\ace" Spec "\\ace" SpecCellImplicit "]"
                   | TAS
                   | "*"
@@ -124,7 +128,7 @@ module HOON-SYNTAX
                   | "?"
                   | "~"
                   | Aura
-                  | TasText "=" Spec
+                  | TasText "=" Spec [avoid]
     syntax SpecCellImplicit ::= List{Spec, "\\ace"}
 
     syntax Aura ::= AText
@@ -175,6 +179,16 @@ module HOON
     rule <k> ([({T1; N1}, P) \ace ({T2; N2}, Q)]:Cell):TallExp => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
     rule <k> ([({T1; N1}, P) \ace ({T2; N2}, Q)]:Cell):WideExp => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
 
+    // Always treat terms as nouns
+    rule <k> ((P:TAS):Spec):TallExp => ({P; .ArmNames}, P) ... </k>
+    rule <k> ((P:TAS):Spec):WideExp => ({P; .ArmNames}, P) ... </k>
+
+    // Produce mold from spec
+    rule <k> (P:Spec):TallExp => mold(P, S) ... </k>
+         <subject> S->_ </subject> [owise]
+    rule <k> (P:Spec):WideExp => mold(P, S) ... </k>
+         <subject> S->_ </subject> [owise]
+
     // Current subject
     rule <k> \dot:Hoon => S ... </k>
          <subject> S->_ </subject>
@@ -210,6 +224,10 @@ module HOON
     rule <k> |= \gap P \gap Q => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
     rule <k> |=(P \ace Q) => =+ \gap ^~(^*(P)) \gap |% \gap ++ \gap $ \gap Q \gap -- ... </k>
 
+    // buctis
+    rule <k> $= \gap P \gap Q => |= \gap * \gap ^= \gap P \gap %- \gap Q \gap StringToNumAddr("+6") ... </k>
+    rule <k> $=(P \ace Q) => |= \gap * \gap ^= \gap P \gap %- \gap Q \gap StringToNumAddr("+6") ... </k>
+
     // cenhep
     rule <k> %- \gap P \gap Q => %~ \gap $ \gap P \gap Q ... </k>
     rule <k> %-(P \ace Q) => %~($ \ace P \ace Q) ... </k>
@@ -217,6 +235,10 @@ module HOON
     // censig
     rule <k> %~ \gap P \gap ({T; [N1 \ace N2]}, [Q1 \ace Q2]:Core) \gap R => push(substWithAddr(replaceValues(unname(R), addr(StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))), StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))) ~> getBatteryCode(P, Q1, N1) ~> pop() ... </k>
     rule <k> %~(P \ace ({T; [N1 \ace N2]}, [Q1 \ace Q2]:Core) \ace R) => push(substWithAddr(replaceValues(unname(R), addr(StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))), StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))) ~> getBatteryCode(P, Q1, N1) ~> pop() ... </k>
+    rule <k> %~ \gap P \gap (_, Q:TAS) \gap R => %~ \gap P \gap mold(Q, S) \gap R ... </k>
+         <subject> S->_ </subject>
+    rule <k> %~(P \ace (_, Q:TAS) \ace R) => %~(P \ace mold(Q, S) \ace R) ... </k>
+         <subject> S->_ </subject>
 
     // colhep
     rule <k> :- \gap ({T1; N1}, P) \gap ({T2; N2}, Q) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
@@ -628,6 +650,11 @@ module HOON-HELPER
     syntax MetaNoun ::= buildCore(ArmList, MetaNoun) [function]
 
     rule buildCore(P, R) => ({[* \ace getSpec(R)]; [armNames(P) \ace getArmNames(R)]}, [battery(P) \ace getNoun(R)])
+
+    // Build a mold gate from the given spec and context
+    syntax MetaNoun ::= mold(Spec, MetaNoun) [function]
+
+    rule mold(P, S) => buildCore(++ \gap $ \gap ^- \gap P \gap StringToNumAddr("+6"), metaCell(bunt(*), S))
 
     // In the second noun, replace the noun at the numeric address with the
     // first noun
