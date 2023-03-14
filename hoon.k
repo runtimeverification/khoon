@@ -11,12 +11,14 @@ module HOON-SYNTAX
 
     syntax WideExp ::= Noun
                      | Spec
+                     | Skin
                      | SubjectExp
                      | LookupExp
                      | WideForm
 
     syntax TallExp ::= Noun
                      | Spec
+                     | Skin
                      | SubjectExp
                      | LookupExp
                      | TallForm
@@ -86,6 +88,8 @@ module HOON-SYNTAX
                       | "^*" "\\gap" Spec
                       | "^=" "\\gap" Skin "\\gap" Hoon [strict(2)]
                       | "=|" "\\gap" Spec "\\gap" Hoon
+                      | "=/" "\\gap" Skin "\\gap" Hoon "\\gap" Hoon
+                      | "=/" "\\gap" Spec "\\gap" Hoon "\\gap" Hoon
                       | "=<" "\\gap" Hoon "\\gap" Hoon
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
@@ -94,9 +98,9 @@ module HOON-SYNTAX
                       | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon
                       | "?=" "\\gap" Spec "\\gap" Hoon [strict(2)]
 
-    syntax WideForm ::= "|." "(" Hoon ")"
-                      | "|-" "(" Hoon ")"
-                      | "|=" "(" Spec "\\ace" Hoon ")"
+    syntax WideForm ::= "|." "(" WideExp ")"
+                      | "|-" "(" WideExp ")"
+                      | "|=" "(" Spec "\\ace" WideExp ")"
                       | "$=" "(" Skin "\\ace" Spec ")"
                       | "%-" "(" WideExp "\\ace" WideExp ")"
                       | "%~" "(" TasText "\\ace" WideExp "\\ace" WideExp ")" [strict(2,3)]
@@ -105,10 +109,12 @@ module HOON-SYNTAX
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
                       | "^-" "(" Spec "\\ace" WideExp ")"
                       | "^+" "(" WideExp "\\ace" WideExp ")" [strict]
-                      | "^~" "(" Hoon ")" [strict]
+                      | "^~" "(" WideExp ")" [strict]
                       | "^*" "(" Spec ")"
                       | "^=" "(" Skin "\\ace" WideExp ")" [strict(2)]
                       | "=|" "(" Spec "\\ace" WideExp ")"
+                      | "=/" "(" Skin "\\ace" WideExp "\\ace" WideExp ")"
+                      | "=/" "(" Spec "\\ace" WideExp "\\ace" WideExp ")"
                       | "=<" "(" WideExp "\\ace" WideExp ")"
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
@@ -255,8 +261,8 @@ module HOON
     rule <k> .=(_ \ace _) => ({?; .ArmNames}, %.n) ... </k> [owise]
 
     // kethep
-    rule <k> ^- \gap T \gap Q => ^+ \gap ^* \gap T \gap Q ... </k>
-    rule <k> ^-(T \ace Q) => ^+(^*(T) \ace Q) ... </k>
+    rule <k> ^- \gap P \gap Q => ^+ \gap ^* \gap P \gap Q ... </k>
+    rule <k> ^-(P \ace Q) => ^+(^*(P) \ace Q) ... </k>
 
     // ketlus
     rule <k> ^+ \gap ({T1; _}, _) \gap ({T2; _}, Q) => ({T1; .ArmNames}, toType(T1, Q)) ... </k> requires nests(T1, T2)
@@ -267,8 +273,8 @@ module HOON
     rule <k> ^~(P) => P ... </k>
 
     // kettar
-    rule <k> ^* \gap T => bunt(T) ... </k>
-    rule <k> ^*(T) => bunt(T) ... </k>
+    rule <k> ^* \gap P => bunt(P) ... </k>
+    rule <k> ^*(P) => bunt(P) ... </k>
 
     // kettis
     rule <k> ^= \gap P \gap Q => name(P, Q) ... </k>
@@ -277,6 +283,12 @@ module HOON
     // tisbar
     rule <k> =| \gap P \gap Q => =+ \gap ^* \gap P \gap Q ... </k>
     rule <k> =| (P \ace Q) => =+(^*(P) \ace Q) ... </k>
+
+    // tisfas
+    rule <k> =/ \gap P:TasText \gap Q \gap R => =+ \gap ^=(P \ace Q) \gap R ... </k>
+    rule <k> =/ (P:TasText \ace Q \ace R) => =+(^=(P \ace Q) \ace R) ... </k>
+    rule <k> =/ \gap P:Spec \gap Q \gap R => =+ \gap ^-(P \ace Q) \gap R ... </k>
+    rule <k> =/ (P:Spec \ace Q \ace R) => =+(^-(P \ace Q) \ace R) ... </k>
 
     // tisgal
     rule <k> =< \gap P \gap Q => => \gap Q \gap P ... </k>
@@ -563,6 +575,7 @@ module HOON-HELPER
 
     rule toType(@tas, Q:UD) => % StringToTasText(UDToText(Q))
     rule toType(@, Q:Atom) => IntToUD(toUnsignedInt(Q))
+    rule toType(P1=P, Q) => P1=toType(P, Q)
     rule toType([T1 \ace T2], [P \ace Q]:Cell) => cell(toType(T1, P), toType(T2, Q))
     rule toType(_, Q) => Q [owise]
 
