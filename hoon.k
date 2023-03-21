@@ -66,6 +66,12 @@ module HOON-SYNTAX
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
     syntax SkipTasText ::= r"\\^+[a-z][a-z0-9\\-]*" [token]
 
+    syntax WingHoonTallPair ::= SubjectExp "\\gap" Hoon
+    syntax WingHoonTallList ::= List{WingHoonTallPair, "\\gap"}
+
+    syntax WingHoonWidePair ::= SubjectExp "\\ace" Hoon
+    syntax WingHoonWideList ::= List{WingHoonWidePair, ",\\ace"}
+
     // TODO Add remaining arms (lus)
     syntax Arm ::= "++" "\\gap" TasText "\\gap" Hoon
     syntax ArmList ::= List{Arm, "\\gap"}
@@ -79,6 +85,7 @@ module HOON-SYNTAX
                       | "$=" "\\gap" Skin "\\gap" Spec
                       | "%-" "\\gap" Hoon "\\gap" Hoon
                       | "%~" "\\gap" TasText "\\gap" Hoon "\\gap" Hoon [strict(2,3)]
+                      | "%=" "\\gap" SubjectExp "\\gap" WingHoonTallList "\\gap" "=="
                       | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
                       | ".+" "\\gap" Hoon [strict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
@@ -93,7 +100,7 @@ module HOON-SYNTAX
                       | "=<" "\\gap" Hoon "\\gap" Hoon
                       | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
-                      | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict]
+                      | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict(1)]
                       | "?<" "\\gap" Hoon "\\gap" Hoon
                       | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon
                       | "?=" "\\gap" Spec "\\gap" Hoon [strict(2)]
@@ -104,6 +111,7 @@ module HOON-SYNTAX
                       | "$=" "(" Skin "\\ace" Spec ")"
                       | "%-" "(" WideExp "\\ace" WideExp ")"
                       | "%~" "(" TasText "\\ace" WideExp "\\ace" WideExp ")" [strict(2,3)]
+                      | "%=" "(" SubjectExp "\\ace" WingHoonWideList ")"
                       | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
                       | ".+" "(" WideExp ")" [strict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
@@ -118,7 +126,7 @@ module HOON-SYNTAX
                       | "=<" "(" WideExp "\\ace" WideExp ")"
                       | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
-                      | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict]
+                      | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict(1)]
                       | "?<" "(" WideExp "\\ace" WideExp ")"
                       | "?@" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")"
                       | "?=" "(" Spec "\\ace" WideExp ")" [strict(2)]
@@ -148,7 +156,7 @@ module HOON-SYNTAX
 
     syntax Skin ::= TasText
                   | TasText "=" Skin
-                  | "[" Skin "\\ace" Skin "]"
+                  | "[" Skin "\\ace" Skin "]" [avoid]
                   | "[" Skin "\\ace" Skin "\\ace" SkinCellImplicit "]"
     syntax SkinCellImplicit ::= List{Skin, "\\ace"}
 endmodule
@@ -168,9 +176,10 @@ module HOON
     syntax KResult ::= MetaNoun
 
     // Make the given noun the subject
-    syntax Hoon ::= push(MetaNoun)
+    syntax Hoon ::= push(Hoon)
     rule <k> push(P) ~> K => K </k>
          <subject> S => P->S </subject>
+    context push(HOLE:Hoon)
 
     // Make the preceding noun the subject
     syntax Hoon ::= pop()
@@ -211,6 +220,18 @@ module HOON
     rule <k> (P:Noun : _):TallExp => P ... </k>
     rule <k> (P:Noun : _):WideExp => P ... </k>
 
+    // Modify the noun with the desired changes
+    syntax Hoon ::= applyWingChanges(WingHoonTallList, MetaNoun)
+                  | applyWingChanges(WingHoonWideList, MetaNoun)
+    rule <k> applyWingChanges((P1:TasText \gap P2):WingHoonTallPair \gap P, Q) => applyWingChanges(P, substWithAddr(replaceValues(P2, addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k>
+    rule <k> applyWingChanges((P1 \gap P2):WingHoonTallPair \gap P, Q) => applyWingChanges(P, substWithAddr(P2, wingToNumAddr(P1, Q), Q)) ... </k> [owise]
+    rule <k> applyWingChanges(.WingHoonTallList, Q) => Q ... </k>
+    rule <k> applyWingChanges((P1:TasText \ace P2):WingHoonWidePair ,\ace P, Q) => applyWingChanges(P, substWithAddr(replaceValues(P2, addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k>
+    rule <k> applyWingChanges((P1 \ace P2):WingHoonWidePair ,\ace P, Q) => applyWingChanges(P, substWithAddr(P2, wingToNumAddr(P1, Q), Q)) ... </k> [owise]
+    rule <k> applyWingChanges(.WingHoonWideList, Q) => Q ... </k>
+    context applyWingChanges((_ \gap HOLE:Hoon):WingHoonTallPair \gap _, _)
+    context applyWingChanges((_ \ace HOLE:Hoon):WingHoonWidePair ,\ace _, _)
+
     // barcab
     rule <k> |_ \gap P \gap Q \gap -- => =| \gap P \gap |% \gap Q \gap -- ... </k>
 
@@ -245,6 +266,16 @@ module HOON
          <subject> S->_ </subject>
     rule <k> %~(P \ace (_, Q:TAS) \ace R) => %~(P \ace mold(Q, S) \ace R) ... </k>
          <subject> S->_ </subject>
+
+    // centis
+    rule <k> %= \gap P \gap Q \gap == => push(applyWingChanges(Q, getParentCore(P, S))) ~> getBatteryCode(P, getBattery(getParentCore(P, S)), getCoreArmNames(getParentCore(P, S))) ~> pop() ... </k>
+         <subject> S->_ </subject> requires isArmName(P, S)
+    rule <k> %=(P \ace Q) => push(applyWingChanges(Q, getParentCore(P, S))) ~> getBatteryCode(P, getBattery(getParentCore(P, S)), getCoreArmNames(getParentCore(P, S))) ~> pop() ... </k>
+         <subject> S->_ </subject> requires isArmName(P, S)
+    rule <k> %= \gap P \gap Q \gap == => push({lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> applyWingChanges(Q, {lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> pop()  ... </k>
+         <subject> S->_ </subject> [owise]
+    rule <k> %=(P \ace Q) => push({lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> applyWingChanges(Q, {lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> pop() ... </k>
+         <subject> S->_ </subject> [owise]
 
     // colhep
     rule <k> :- \gap ({T1; N1}, P) \gap ({T2; N2}, Q) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
@@ -295,10 +326,8 @@ module HOON
     rule <k> =<(P \ace Q) => =>(Q \ace P) ... </k>
 
     // tisgar
-    rule <k> => \gap P \gap Q => Q ... </k>
-         <subject> _ => P->.Subject </subject>
-    rule <k> => (P \ace Q) => Q ... </k>
-         <subject> _ => P->.Subject </subject>
+    rule <k> => \gap P \gap Q => push(P) ~> Q ~> pop() ... </k>
+    rule <k> => (P \ace Q) => push(P) ~> Q ~> pop() ... </k>
 
     // tislus
     rule <k> =+ \gap P \gap Q => => \gap metaCell(P, S) \gap Q ... </k>
@@ -362,6 +391,10 @@ module HOON-HELPER
     imports STRING
     imports K-EQUAL
     imports BOOL
+
+    syntax WingStack ::= List{SubjectExp, "->"}
+    syntax MetaNounStack ::= List{MetaNoun, "->"}
+    syntax IntStack ::= List{Int, "->"}
 
     // Make implicit brackets explicit
     syntax Cell ::= explicitBrackets(Cell) [function]
@@ -559,6 +592,12 @@ module HOON-HELPER
 
     rule getArmNames(({_; N}, _)) => N
 
+    // Get arm names from a core
+    syntax ArmNames ::= getCoreArmNames(MetaNoun) [function]
+
+    rule getCoreArmNames(({_; [N \ace _]}, [_ \ace _]:Core)) => N
+    rule getCoreArmNames(_) => .ArmNames [owise]
+
     // Bind a name to a value
     syntax MetaNoun ::= name(Skin, MetaNoun) [function]
 
@@ -604,15 +643,13 @@ module HOON-HELPER
 
     // Lookup wing in the given meta noun (Hoon)
     syntax Hoon ::= lookup(WingStack, Hoon, MetaNounStack, Int) [function]
-    syntax WingStack ::= List{SubjectExp, "->"}
-    syntax MetaNounStack ::= List{MetaNoun, "->"}
 
     rule lookup(P:NumAddr, Q, _, _) => addr(P, Q)
     rule lookup(P:Lark, Q, _, _) => lark(LarkToString(P), Q)
     rule lookup(P:TasText, ({_ = T; N}, Q1 = Q2), _, 0) => ({T; N}, Q2) requires P ==K Q1
     rule lookup(P:TasText, ({_; [N \ace _]}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
     rule lookup(P:TasText, (_, Q = _), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
-    rule lookup(P:TasText, ({_; [N \ace _]}, _:Core), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires nameInList(P, N) andBool I >Int 0
+    rule lookup(P:TasText, ({[_ \ace T2]; [N1 \ace N2]}, [_ \ace Q2]:Core), R, I) => lookup(P, ({T2; N2}, Q2), R, I -Int 1) requires nameInList(P, N1) andBool I >Int 0
     rule lookup(P:TasText, ({[T1 \ace T2]; [N1 \ace N2]}, [Q1 \ace Q2]:Cell), R, I) => lookup(P, ({T1; N1}, Q1), ({T2; N2}, Q2)->R, I)
     rule lookup(P:TasText, ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q2]:Core), R, I) => lookup(P, ({T2; N2}, Q2), R, I) [owise]
     rule lookup(P:TasText, _, R1->R, I) => lookup(P, R1, R, I) [owise]
@@ -711,6 +748,54 @@ module HOON-HELPER
     rule unname(({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Core)) => unname(({T2; N2}, Q))
     rule unname(P) => P [owise]
 
+    // Get the core of an arm
+    syntax MetaNoun ::= getParentCore(SubjectExp, MetaNoun) [function]
+
+    rule getParentCore(P, Q) => addr(wingToNumAddr(P, Q), Q)
+
+    // Get the battery of a core
+    syntax Battery ::= getBattery(MetaNoun) [function]
+
+    rule getBattery((_, [P \ace _]:Core)) => P
+
+    // Select the left noun of a cell
+    syntax MetaNoun ::= leftNoun(MetaNoun) [function]
+
+    rule leftNoun(({[T \ace _]; [N \ace _]}, [P \ace _]:Cell)) => ({T; N}, P)
+
+    // Check if the wing refers to an arm
+    syntax Bool ::= isArmName(SubjectExp, MetaNoun) [function]
+
+    rule isArmName(P, Q) => true requires getCoreArmNames(addr(wingToNumAddr(P, Q), Q)) =/=K .ArmNames
+    rule isArmName(_, _) => false [owise]
+
+    // Convert a wing to a numeric address
+    syntax NumAddr ::= wingToNumAddr(SubjectExp, MetaNoun) [function]
+
+    rule wingToNumAddr(P, Q) => LarkStringToNumAddr(DirToLarkString(addrsToDir(findAddrs(toWingStack(P, .WingStack), Q, .IntStack)), false), 1)
+
+    // Convert a wing to a wing of only numeric addresses
+    syntax IntStack ::= findAddrs(WingStack, Hoon, IntStack) [function]
+
+    rule findAddrs(.WingStack, _, IS) => IS
+    rule findAddrs(\dot->P, Q:MetaNoun, IS) => findAddrs(P, Q, 1->IS)
+    rule findAddrs(P1:NumAddr->P, Q:MetaNoun, IS) => findAddrs(P, Q, NumAddrToInt(P1)->IS)
+    rule findAddrs(P1:Lark->P, Q:MetaNoun, IS) => findAddrs(P, Q, LarkStringToInt(LarkToString(P1), 1)->IS)
+    rule findAddrs(P1:TasText->P, Q:MetaNoun, IS) => findAddrs(P, lookup(P1, Q, .MetaNounStack, 0), addrOf(P1, Q, .MetaNounStack, 0, 1)->IS)
+    rule findAddrs(P1:SkipTasText->P, Q:MetaNoun, IS) => findAddrs(P, lookup(P1, Q, .MetaNounStack, numberOfSkips(P1)), addrOf(getTasText(P1), Q, .MetaNounStack, numberOfSkips(P1), 1)->IS)
+
+    // Get numeric address of a name. If it is an arm name, the address of the
+    // parent core is returned
+    syntax Int ::= addrOf(TasText, Hoon, MetaNounStack, Int, IntStack) [function]
+
+    rule addrOf(P, (_, Q1 = _), _, 0, S1->_) => S1 requires P ==K Q1
+    rule addrOf(P, (_, Q1 = _), R1->R, I, _->S) => addrOf(P, R1, R, I -Int 1, S) requires (I >Int 0) andBool (P ==K Q1)
+    rule addrOf(P, ({[T1 \ace T2]; [N1 \ace N2]}, [Q1 \ace Q2]:Cell), R, I, S1->S) => addrOf(P, ({T1; N1}, Q1), ({T2; N2}, Q2)->R, I, (S1 *Int 2)->S1->S)
+    rule addrOf(P, ({_; [N \ace _]}, _:Core), _, 0, S1->_) => S1 requires nameInList(P, N)
+    rule addrOf(P, ({[_ \ace T2]; [N1 \ace N2]}, [_ \ace Q2]:Core), R, I, S1->S) => addrOf(P, ({T2; N2}, Q2), R, I -Int 1, ((S1 *Int 2) +Int 1)->S) requires nameInList(P, N1) andBool I >Int 0
+    rule addrOf(P, ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q2]:Core), R, I, S1->S) => addrOf(P, ({T2; N2}, Q2), R, I, ((S1 *Int 2) +Int 1)->S) [owise]
+    rule addrOf(P, _, R1->R, I, _->S1->S) => addrOf(P, R1, R, I, ((S1 *Int 2) +Int 1)->S) [owise]
+
     // Helper functions
     syntax TasText ::= StringToTasText(String) [function, total, hook(STRING.string2token)]
     syntax UD ::= StringToUD(String) [function, total, hook(STRING.string2token)]
@@ -723,6 +808,25 @@ module HOON-HELPER
                     | SkipTasTextToString(SkipTasText) [function, total, hook(STRING.token2string)]
                     | NumAddrToString(NumAddr) [function, total, hook(STRING.token2string)]
 
+    syntax String ::= addrsToDir(IntStack) [function]
+    rule addrsToDir(.IntStack) => ""
+    rule addrsToDir(I->IS) => addrsToDir(IS) +String IntToDir(I)
+
+    syntax String ::= DirToLarkString(String, Bool) [function]
+    rule DirToLarkString("", _) => ""
+    rule DirToLarkString(P, false) => "-" +String DirToLarkString(tail(P), true) requires (lengthString(P) >Int 0) andBool (head(P) ==String "L")
+    rule DirToLarkString(P, false) => "+" +String DirToLarkString(tail(P), true) requires (lengthString(P) >Int 0) andBool (head(P) ==String "R")
+    rule DirToLarkString(P, true) => "<" +String DirToLarkString(tail(P), false) requires (lengthString(P) >Int 0) andBool (head(P) ==String "L")
+    rule DirToLarkString(P, true) => ">" +String DirToLarkString(tail(P), false) requires (lengthString(P) >Int 0) andBool (head(P) ==String "R")
+
+    syntax String ::= IntToDir(Int) [function]
+    rule IntToDir(1) => ""
+    rule IntToDir(P) => IntToDir(P /Int 2) +String "L" requires (P %Int 2 ==Int 0) andBool (P >Int 1)
+    rule IntToDir(P) => IntToDir((P -Int 1) /Int 2) +String "R" requires (P %Int 2 ==Int 1) andBool (P >Int 1)
+
+    syntax NumAddr ::= IntToNumAddr(Int) [function]
+    rule IntToNumAddr(P) => StringToNumAddr("+" +String Int2String(P))
+
     syntax UD ::= IntToUD(Int) [function]
     rule IntToUD(P) => StringToUD(IntStringToUDString(Int2String(P)))
 
@@ -732,6 +836,14 @@ module HOON-HELPER
 
     syntax Int ::= NumAddrToInt(NumAddr) [function]
     rule NumAddrToInt(P) => String2Int(tail(NumAddrToString(P)))
+
+    syntax Int ::= LarkStringToInt(String, Int) [function]
+    rule LarkStringToInt(P, I) => LarkStringToInt(tail(P), 2 *Int I) requires (lengthString(P) >Int 0) andBool ((head(P) ==String "-") orBool (head(P) ==String "<"))
+    rule LarkStringToInt(P, I) => LarkStringToInt(tail(P), (2 *Int I) +Int 1) requires (lengthString(P) >Int 0) andBool ((head(P) ==String "+") orBool (head(P) ==String ">"))
+    rule LarkStringToInt("", I) => I
+
+    syntax NumAddr ::= LarkStringToNumAddr(String, Int) [function]
+    rule LarkStringToNumAddr(P, I) => StringToNumAddr("+" +String Int2String(LarkStringToInt(P, I)))
 
     syntax TasText ::= getTasText(SkipTasText) [function]
     rule getTasText(P) => StringToTasText(cutSkips(SkipTasTextToString(P)))
