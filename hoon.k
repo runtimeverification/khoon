@@ -187,8 +187,8 @@ module HOON
          <subject> _->S => S </subject>
 
     // Convert nouns to meta nouns if not an end result
-    rule <k> (P:Noun):TallExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K .
-    rule <k> (P:Noun):WideExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K .
+    rule <k> (P:Noun):TallExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K . [owise]
+    rule <k> (P:Noun):WideExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K . [owise]
 
     // Convert cells of meta nouns to a meta noun
     rule <k> ([({T1; N1}, P) \ace ({T2; N2}, Q)]:Cell):TallExp => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
