@@ -48,8 +48,8 @@ module HOON-SYNTAX
     syntax lexical UD = r"(0{1})|([1-9]{1}[0-9]{0,2})(\\.(\\\\gap)?[0-9]{3})*"
     syntax lexical UI = r"(0i)(0{1}|[1-9]{1}[0-9]*)"
 
-    syntax Cell ::= "[" Hoon "\\ace" Hoon "]" [strict]
-                  | "[" Hoon "\\ace" Hoon "\\ace" CellImplicit "]" [strict]
+    syntax Cell ::= "[" Hoon "\\ace" Hoon "]" [seqstrict]
+                  | "[" Hoon "\\ace" Hoon "\\ace" CellImplicit "]" [seqstrict]
     syntax CellImplicit ::= List{Hoon, "\\ace"}
 
     syntax SubjectExp ::= "\\dot"
@@ -59,8 +59,8 @@ module HOON-SYNTAX
                         | SkipTasText
                         | SubjectExp "." SubjectExp
 
-    syntax LookupExp ::= SubjectExp ":" Hoon [strict(2)]
-                       | Noun ":" Hoon [strict(2)]
+    syntax LookupExp ::= SubjectExp ":" Hoon [seqstrict(2)]
+                       | Noun ":" Hoon [seqstrict(2)]
 
     syntax NumAddr ::= r"\\+[1-9][0-9]*" [token]
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
@@ -84,52 +84,52 @@ module HOON-SYNTAX
                       | "|=" "\\gap" Spec "\\gap" Hoon
                       | "$=" "\\gap" Skin "\\gap" Spec
                       | "%-" "\\gap" Hoon "\\gap" Hoon
-                      | "%~" "\\gap" TasText "\\gap" Hoon "\\gap" Hoon [strict(2,3)]
+                      | "%~" "\\gap" TasText "\\gap" Hoon "\\gap" Hoon [seqstrict(2,3)]
                       | "%=" "\\gap" SubjectExp "\\gap" WingHoonTallList "\\gap" "=="
-                      | ":-" "\\gap" Hoon "\\gap" Hoon [strict]
-                      | ".+" "\\gap" Hoon [strict]
-                      | ".=" "\\gap" Hoon "\\gap" Hoon [strict]
+                      | ":-" "\\gap" Hoon "\\gap" Hoon [seqstrict]
+                      | ".+" "\\gap" Hoon [seqstrict]
+                      | ".=" "\\gap" Hoon "\\gap" Hoon [seqstrict]
                       | "^-" "\\gap" Spec "\\gap" Hoon
-                      | "^+" "\\gap" Hoon "\\gap" Hoon [strict]
-                      | "^~" "\\gap" Hoon [strict]
+                      | "^+" "\\gap" Hoon "\\gap" Hoon [seqstrict]
+                      | "^~" "\\gap" Hoon [seqstrict]
                       | "^*" "\\gap" Spec
-                      | "^=" "\\gap" Skin "\\gap" Hoon [strict(2)]
+                      | "^=" "\\gap" Skin "\\gap" Hoon [seqstrict(2)]
                       | "=|" "\\gap" Spec "\\gap" Hoon
                       | "=/" "\\gap" Skin "\\gap" Hoon "\\gap" Hoon
                       | "=/" "\\gap" Spec "\\gap" Hoon "\\gap" Hoon
                       | "=<" "\\gap" Hoon "\\gap" Hoon
-                      | "=>" "\\gap" Hoon "\\gap" Hoon [strict(1)]
-                      | "=+" "\\gap" Hoon "\\gap" Hoon [strict(1)]
-                      | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [strict(1)]
+                      | "=>" "\\gap" Hoon "\\gap" Hoon [seqstrict(1)]
+                      | "=+" "\\gap" Hoon "\\gap" Hoon [seqstrict(1)]
+                      | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [seqstrict(1)]
                       | "?<" "\\gap" Hoon "\\gap" Hoon
                       | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon
-                      | "?=" "\\gap" Spec "\\gap" Hoon [strict(2)]
+                      | "?=" "\\gap" Spec "\\gap" Hoon [seqstrict(2)]
 
     syntax WideForm ::= "|." "(" WideExp ")"
                       | "|-" "(" WideExp ")"
                       | "|=" "(" Spec "\\ace" WideExp ")"
                       | "$=" "(" Skin "\\ace" Spec ")"
                       | "%-" "(" WideExp "\\ace" WideExp ")"
-                      | "%~" "(" TasText "\\ace" WideExp "\\ace" WideExp ")" [strict(2,3)]
+                      | "%~" "(" TasText "\\ace" WideExp "\\ace" WideExp ")" [seqstrict(2,3)]
                       | "%=" "(" SubjectExp "\\ace" WingHoonWideList ")"
-                      | ":-" "(" WideExp "\\ace" WideExp ")" [strict]
-                      | ".+" "(" WideExp ")" [strict]
-                      | ".=" "(" WideExp "\\ace" WideExp ")" [strict]
+                      | ":-" "(" WideExp "\\ace" WideExp ")" [seqstrict]
+                      | ".+" "(" WideExp ")" [seqstrict]
+                      | ".=" "(" WideExp "\\ace" WideExp ")" [seqstrict]
                       | "^-" "(" Spec "\\ace" WideExp ")"
-                      | "^+" "(" WideExp "\\ace" WideExp ")" [strict]
-                      | "^~" "(" WideExp ")" [strict]
+                      | "^+" "(" WideExp "\\ace" WideExp ")" [seqstrict]
+                      | "^~" "(" WideExp ")" [seqstrict]
                       | "^*" "(" Spec ")"
-                      | "^=" "(" Skin "\\ace" WideExp ")" [strict(2)]
+                      | "^=" "(" Skin "\\ace" WideExp ")" [seqstrict(2)]
                       | "=|" "(" Spec "\\ace" WideExp ")"
                       | "=/" "(" Skin "\\ace" WideExp "\\ace" WideExp ")"
                       | "=/" "(" Spec "\\ace" WideExp "\\ace" WideExp ")"
                       | "=<" "(" WideExp "\\ace" WideExp ")"
-                      | "=>" "(" WideExp "\\ace" WideExp ")" [strict(1)]
-                      | "=+" "(" WideExp "\\ace" WideExp ")" [strict(1)]
-                      | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [strict(1)]
+                      | "=>" "(" WideExp "\\ace" WideExp ")" [seqstrict(1)]
+                      | "=+" "(" WideExp "\\ace" WideExp ")" [seqstrict(1)]
+                      | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [seqstrict(1)]
                       | "?<" "(" WideExp "\\ace" WideExp ")"
                       | "?@" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")"
-                      | "?=" "(" Spec "\\ace" WideExp ")" [strict(2)]
+                      | "?=" "(" Spec "\\ace" WideExp ")" [seqstrict(2)]
 
     syntax Digraph ::= "!!"
 
@@ -376,7 +376,7 @@ module HOON-CORES
     imports HOON-SYNTAX
 
     // Arms are encoded as a list of Hoon code instead of a Nock formula
-    syntax Core ::= "[" Battery "\\ace" Hoon "]" [strict(2)]
+    syntax Core ::= "[" Battery "\\ace" Hoon "]" [seqstrict(2)]
 
     syntax Battery ::= List{Hoon, "\\sep"}
 
