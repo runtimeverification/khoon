@@ -98,7 +98,7 @@ module HOON-SYNTAX
                       | "=/" "\\gap" Skin "\\gap" Hoon "\\gap" Hoon
                       | "=/" "\\gap" Spec "\\gap" Hoon "\\gap" Hoon
                       | "=<" "\\gap" Hoon "\\gap" Hoon
-                      | "=>" "\\gap" Hoon "\\gap" Hoon [seqstrict(1)]
+                      | "=>" "\\gap" Hoon "\\gap" Hoon
                       | "=+" "\\gap" Hoon "\\gap" Hoon [seqstrict(1)]
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [seqstrict(1)]
                       | "?<" "\\gap" Hoon "\\gap" Hoon
@@ -124,7 +124,7 @@ module HOON-SYNTAX
                       | "=/" "(" Skin "\\ace" WideExp "\\ace" WideExp ")"
                       | "=/" "(" Spec "\\ace" WideExp "\\ace" WideExp ")"
                       | "=<" "(" WideExp "\\ace" WideExp ")"
-                      | "=>" "(" WideExp "\\ace" WideExp ")" [seqstrict(1)]
+                      | "=>" "(" WideExp "\\ace" WideExp ")"
                       | "=+" "(" WideExp "\\ace" WideExp ")" [seqstrict(1)]
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [seqstrict(1)]
                       | "?<" "(" WideExp "\\ace" WideExp ")"
