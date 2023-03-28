@@ -300,8 +300,8 @@ module HOON
     rule <k> ^+(({T1; _}, _) \ace ({T2; _}, Q)) => ({T1; .ArmNames}, toType(T1, Q)) ... </k> requires nests(T1, T2)
 
     // ketsig TODO
-    rule <k> ^~ \gap P => P ... </k>
-    rule <k> ^~(P) => P ... </k>
+    rule <k> ^~ \gap P:MetaNoun => P ... </k>
+    rule <k> ^~(P:MetaNoun) => P ... </k>
 
     // kettar
     rule <k> ^* \gap P => bunt(P) ... </k>
