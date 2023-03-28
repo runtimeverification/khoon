@@ -399,7 +399,7 @@ module HOON-HELPER
     // Make implicit brackets explicit
     syntax Cell ::= explicitBrackets(Cell) [function]
 
-    rule [P \ace Q \ace R]:Cell => explicitBrackets([P \ace Q \ace R])
+    rule [P \ace Q \ace R]:Cell => explicitBrackets([P \ace Q \ace R]) [priority(49)]
     rule explicitBrackets([P \ace Q \ace R \ace REST]:Cell) => [P \ace explicitBrackets([Q \ace R \ace REST])]
     rule explicitBrackets([P \ace Q \ace .CellImplicit]:Cell) => [P \ace Q]
 
