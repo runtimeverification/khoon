@@ -204,10 +204,6 @@ module HOON
     rule <k> (P:Spec):WideExp => mold(P, S) ... </k>
          <subject> S->_ </subject> [owise]
 
-    // Current subject
-    rule <k> \dot:Hoon => S ... </k>
-         <subject> S->_ </subject>
-
     // Lookup wings in the subject
     rule <k> (P:SubjectExp):TallExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
          <subject> S->_ </subject>
@@ -646,6 +642,7 @@ module HOON-HELPER
 
     rule lookup(P:NumAddr, Q, _, _) => addr(P, Q)
     rule lookup(P:Lark, Q, _, _) => lark(LarkToString(P), Q)
+    rule lookup(\dot, Q, _, _) => Q
     rule lookup(P:TasText, ({_ = T; N}, Q1 = Q2), _, 0) => ({T; N}, Q2) requires P ==K Q1
     rule lookup(P:TasText, ({_; [N \ace _]}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
     rule lookup(P:TasText, (_, Q = _), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
