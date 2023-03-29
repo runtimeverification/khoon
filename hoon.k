@@ -827,6 +827,9 @@ module HOON-HELPER
     syntax UD ::= IntToUD(Int) [function]
     rule IntToUD(P) => StringToUD(IntStringToUDString(Int2String(P)))
 
+    syntax Int ::= UDToInt(UD) [function]
+    rule UDToInt(P) => String2Int(replaceAll(UDToString(P), ".", ""))
+
     syntax String ::= IntStringToUDString(String) [function]
     rule IntStringToUDString(P) => P requires lengthString(P) <=Int 3
     rule IntStringToUDString(P) => IntStringToUDString(substrString(P, 0, lengthString(P) -Int 3)) +String ("." +String substrString(P, lengthString(P) -Int 3, lengthString(P))) requires lengthString(P) >Int 3
