@@ -12,14 +12,14 @@ module HOON-SYNTAX
     syntax WideExp ::= Noun
                      | Spec
                      | Skin
-                     | SubjectExp
+                     | Wing
                      | LookupExp
                      | WideForm
 
     syntax TallExp ::= Noun
                      | Spec
                      | Skin
-                     | SubjectExp
+                     | Wing
                      | LookupExp
                      | TallForm
 
@@ -52,24 +52,24 @@ module HOON-SYNTAX
                   | "[" Hoon "\\ace" Hoon "\\ace" CellImplicit "]" [seqstrict]
     syntax CellImplicit ::= List{Hoon, "\\ace"}
 
-    syntax SubjectExp ::= "\\dot"
-                        | NumAddr
-                        | Lark
-                        | TasText
-                        | SkipTasText
-                        | SubjectExp "." SubjectExp [right]
+    syntax Wing ::= "\\dot"
+                  | NumAddr
+                  | Lark
+                  | TasText
+                  | SkipTasText
+                  | Wing "." Wing [right]
 
-    syntax LookupExp ::= SubjectExp ":" Hoon [seqstrict(2)]
+    syntax LookupExp ::= Wing ":" Hoon [seqstrict(2)]
                        | Noun ":" Hoon [seqstrict(2)]
 
     syntax NumAddr ::= r"\\+[1-9][0-9]*" [token]
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
     syntax SkipTasText ::= r"\\^+[a-z][a-z0-9\\-]*" [token]
 
-    syntax WingHoonTallPair ::= SubjectExp "\\gap" Hoon
+    syntax WingHoonTallPair ::= Wing "\\gap" Hoon
     syntax WingHoonTallList ::= List{WingHoonTallPair, "\\gap"}
 
-    syntax WingHoonWidePair ::= SubjectExp "\\ace" Hoon
+    syntax WingHoonWidePair ::= Wing "\\ace" Hoon
     syntax WingHoonWideList ::= List{WingHoonWidePair, ",\\ace"}
 
     // TODO Add remaining arms (lus)
@@ -85,7 +85,7 @@ module HOON-SYNTAX
                       | "$=" "\\gap" Skin "\\gap" Spec
                       | "%-" "\\gap" Hoon "\\gap" Hoon
                       | "%~" "\\gap" TasText "\\gap" Hoon "\\gap" Hoon [seqstrict(2,3)]
-                      | "%=" "\\gap" SubjectExp "\\gap" WingHoonTallList "\\gap" "=="
+                      | "%=" "\\gap" Wing "\\gap" WingHoonTallList "\\gap" "=="
                       | ":-" "\\gap" Hoon "\\gap" Hoon [seqstrict]
                       | ".+" "\\gap" Hoon [seqstrict]
                       | ".=" "\\gap" Hoon "\\gap" Hoon [seqstrict]
@@ -111,7 +111,7 @@ module HOON-SYNTAX
                       | "$=" "(" Skin "\\ace" Spec ")"
                       | "%-" "(" WideExp "\\ace" WideExp ")"
                       | "%~" "(" TasText "\\ace" WideExp "\\ace" WideExp ")" [seqstrict(2,3)]
-                      | "%=" "(" SubjectExp "\\ace" WingHoonWideList ")"
+                      | "%=" "(" Wing "\\ace" WingHoonWideList ")"
                       | ":-" "(" WideExp "\\ace" WideExp ")" [seqstrict]
                       | ".+" "(" WideExp ")" [seqstrict]
                       | ".=" "(" WideExp "\\ace" WideExp ")" [seqstrict]
@@ -205,9 +205,9 @@ module HOON
          <subject> S->_ </subject> [owise]
 
     // Lookup wings in the subject
-    rule <k> (P:SubjectExp):TallExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
+    rule <k> (P:Wing):TallExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
          <subject> S->_ </subject>
-    rule <k> (P:SubjectExp):WideExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
+    rule <k> (P:Wing):WideExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
          <subject> S->_ </subject>
 
     // Wing the specified noun
@@ -230,8 +230,8 @@ module HOON
 
     // Leg case of centis. Evaluate the hoon part in the list of wing hoon
     // pairs before making P the subject
-    syntax Hoon ::= centisLeg(SubjectExp, WingHoonTallList, WingHoonTallList)
-                  | centisLeg(SubjectExp, WingHoonWideList, WingHoonWideList)
+    syntax Hoon ::= centisLeg(Wing, WingHoonTallList, WingHoonTallList)
+                  | centisLeg(Wing, WingHoonWideList, WingHoonWideList)
     rule <k> centisLeg(P, Q1:WingHoonTallPair \gap Q, R) => centisLeg(P, Q, Q1 \gap R) ... </k> [owise]
     rule <k> centisLeg(P, Q1:WingHoonWidePair ,\ace Q, R) => centisLeg(P, Q, Q1 ,\ace R) ... </k> [owise]
     rule <k> centisLeg(P, .WingHoonTallList, R) => push({lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> applyWingChanges(R, {lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> pop() ... </k>
@@ -399,7 +399,7 @@ module HOON-HELPER
     imports K-EQUAL
     imports BOOL
 
-    syntax WingStack ::= List{SubjectExp, "->"}
+    syntax WingStack ::= List{Wing, "->"}
     syntax MetaNounStack ::= List{MetaNoun, "->"}
     syntax IntStack ::= List{Int, "->"}
 
@@ -678,7 +678,7 @@ module HOON-HELPER
     rule nameInList(P, (_, N)) => nameInList(P, N) [owise]
 
     // Convert wing into a stack of names/larks
-    syntax WingStack ::= toWingStack(SubjectExp, WingStack) [function]
+    syntax WingStack ::= toWingStack(Wing, WingStack) [function]
 
     rule toWingStack(P.Q, R) => toWingStack(Q, P->R)
     rule toWingStack(P, R) => P->R [owise]
@@ -757,7 +757,7 @@ module HOON-HELPER
     rule unname(P) => P [owise]
 
     // Get the core of an arm
-    syntax MetaNoun ::= getParentCore(SubjectExp, MetaNoun) [function]
+    syntax MetaNoun ::= getParentCore(Wing, MetaNoun) [function]
 
     rule getParentCore(P, Q) => addr(wingToNumAddr(P, Q), Q)
 
@@ -772,13 +772,13 @@ module HOON-HELPER
     rule leftNoun(({[T \ace _]; [N \ace _]}, [P \ace _]:Cell)) => ({T; N}, P)
 
     // Check if the wing refers to an arm
-    syntax Bool ::= isArmName(SubjectExp, MetaNoun) [function]
+    syntax Bool ::= isArmName(Wing, MetaNoun) [function]
 
     rule isArmName(P, Q) => true requires getCoreArmNames(addr(wingToNumAddr(P, Q), Q)) =/=K .ArmNames
     rule isArmName(_, _) => false [owise]
 
     // Convert a wing to a numeric address
-    syntax NumAddr ::= wingToNumAddr(SubjectExp, MetaNoun) [function]
+    syntax NumAddr ::= wingToNumAddr(Wing, MetaNoun) [function]
 
     rule wingToNumAddr(P, Q) => LarkStringToNumAddr(DirToLarkString(addrsToDir(findAddrs(toWingStack(P, .WingStack), Q, .IntStack)), false), 1)
 
