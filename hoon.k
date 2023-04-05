@@ -228,6 +228,19 @@ module HOON
     context applyWingChanges((_ \gap HOLE:Hoon):WingHoonTallPair \gap _, _)
     context applyWingChanges((_ \ace HOLE:Hoon):WingHoonWidePair ,\ace _, _)
 
+    // Leg case of centis. Evaluate the hoon part in the list of wing hoon
+    // pairs before making P the subject
+    syntax Hoon ::= centisLeg(SubjectExp, WingHoonTallList, WingHoonTallList)
+                  | centisLeg(SubjectExp, WingHoonWideList, WingHoonWideList)
+    rule <k> centisLeg(P, Q1:WingHoonTallPair \gap Q, R) => centisLeg(P, Q, Q1 \gap R) ... </k> [owise]
+    rule <k> centisLeg(P, Q1:WingHoonWidePair ,\ace Q, R) => centisLeg(P, Q, Q1 ,\ace R) ... </k> [owise]
+    rule <k> centisLeg(P, .WingHoonTallList, R) => push({lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> applyWingChanges(R, {lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> pop() ... </k>
+         <subject> S->_ </subject>
+    rule <k> centisLeg(P, .WingHoonWideList, R) => push({lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> applyWingChanges(R, {lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> pop() ... </k>
+         <subject> S->_ </subject>
+    context centisLeg(_, _ \gap HOLE:Hoon \gap _, _)
+    context centisLeg(_, _ \ace HOLE:Hoon ,\ace _, _)
+
     // barcab
     rule <k> |_ \gap P \gap Q \gap -- => =| \gap P \gap |% \gap Q \gap -- ... </k>
 
@@ -268,10 +281,8 @@ module HOON
          <subject> S->_ </subject> requires isArmName(P, S)
     rule <k> %=(P \ace Q) => push(applyWingChanges(Q, getParentCore(P, S))) ~> getBatteryCode(P, getBattery(getParentCore(P, S)), getCoreArmNames(getParentCore(P, S))) ~> pop() ... </k>
          <subject> S->_ </subject> requires isArmName(P, S)
-    rule <k> %= \gap P \gap Q \gap == => push({lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> applyWingChanges(Q, {lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> pop()  ... </k>
-         <subject> S->_ </subject> [owise]
-    rule <k> %=(P \ace Q) => push({lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> applyWingChanges(Q, {lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0)}:>MetaNoun) ~> pop() ... </k>
-         <subject> S->_ </subject> [owise]
+    rule <k> %= \gap P \gap Q \gap == => centisLeg(P, Q, .WingHoonTallList) ... </k> [owise]
+    rule <k> %=(P \ace Q) => centisLeg(P, Q, .WingHoonWideList) ... </k> [owise]
 
     // colhep
     rule <k> :- \gap ({T1; N1}, P) \gap ({T2; N2}, Q) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
