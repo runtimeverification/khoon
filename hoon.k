@@ -57,7 +57,7 @@ module HOON-SYNTAX
                         | Lark
                         | TasText
                         | SkipTasText
-                        | SubjectExp "." SubjectExp
+                        | SubjectExp "." SubjectExp [right]
 
     syntax LookupExp ::= SubjectExp ":" Hoon [seqstrict(2)]
                        | Noun ":" Hoon [seqstrict(2)]
