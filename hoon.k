@@ -13,14 +13,14 @@ module HOON-SYNTAX
                      | Spec
                      | Skin
                      | Wing
-                     | LookupExp
+                     | Lookup
                      | WideForm
 
     syntax TallExp ::= Noun
                      | Spec
                      | Skin
                      | Wing
-                     | LookupExp
+                     | Lookup
                      | TallForm
 
     syntax Noun ::= Atom
@@ -59,8 +59,8 @@ module HOON-SYNTAX
                   | SkipTasText
                   | Wing "." Wing [right]
 
-    syntax LookupExp ::= Wing ":" Hoon [seqstrict(2)]
-                       | Noun ":" Hoon [seqstrict(2)]
+    syntax Lookup ::= Wing ":" Hoon [seqstrict(2)]
+                    | Noun ":" Hoon [seqstrict(2)]
 
     syntax NumAddr ::= r"\\+[1-9][0-9]*" [token]
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
