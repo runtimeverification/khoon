@@ -827,11 +827,11 @@ module HOON-HELPER
                     | SkipTasTextToString(SkipTasText) [function, total, hook(STRING.token2string)]
                     | NumAddrToString(NumAddr) [function, total, hook(STRING.token2string)]
 
-    syntax String ::= addrsToDir(IntStack) [function]
+    syntax String ::= addrsToDir(IntStack) [function, total]
     rule addrsToDir(.IntStack) => ""
     rule addrsToDir(I->IS) => addrsToDir(IS) +String IntToDir(I)
 
-    syntax String ::= DirToLarkString(String, Bool) [function]
+    syntax String ::= DirToLarkString(String, Bool) [function, total]
     rule DirToLarkString("", _) => ""
     rule DirToLarkString(P, false) => "-" +String DirToLarkString(tail(P), true) requires (lengthString(P) >Int 0) andBool (head(P) ==String "L")
     rule DirToLarkString(P, false) => "+" +String DirToLarkString(tail(P), true) requires (lengthString(P) >Int 0) andBool (head(P) ==String "R")
@@ -843,16 +843,16 @@ module HOON-HELPER
     rule IntToDir(P) => IntToDir(P /Int 2) +String "L" requires (P %Int 2 ==Int 0) andBool (P >Int 1)
     rule IntToDir(P) => IntToDir((P -Int 1) /Int 2) +String "R" requires (P %Int 2 ==Int 1) andBool (P >Int 1)
 
-    syntax NumAddr ::= IntToNumAddr(Int) [function]
+    syntax NumAddr ::= IntToNumAddr(Int) [function, total]
     rule IntToNumAddr(P) => StringToNumAddr("+" +String Int2String(P))
 
-    syntax UD ::= IntToUD(Int) [function]
+    syntax UD ::= IntToUD(Int) [function, total]
     rule IntToUD(P) => StringToUD(IntStringToUDString(Int2String(P)))
 
-    syntax Int ::= UDToInt(UD) [function]
+    syntax Int ::= UDToInt(UD) [function, total]
     rule UDToInt(P) => String2Int(replaceAll(UDToString(P), ".", ""))
 
-    syntax String ::= IntStringToUDString(String) [function]
+    syntax String ::= IntStringToUDString(String) [function, total]
     rule IntStringToUDString(P) => P requires lengthString(P) <=Int 3
     rule IntStringToUDString(P) => IntStringToUDString(substrString(P, 0, lengthString(P) -Int 3)) +String ("." +String substrString(P, lengthString(P) -Int 3, lengthString(P))) requires lengthString(P) >Int 3
 
