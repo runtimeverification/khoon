@@ -219,10 +219,10 @@ module HOON
     // Modify the noun with the desired changes
     syntax Hoon ::= applyWingChanges(WingHoonTallList, MetaNoun)
                   | applyWingChanges(WingHoonWideList, MetaNoun)
-    rule <k> applyWingChanges((P1:TasText \gap P2):WingHoonTallPair \gap P, Q) => applyWingChanges(P, substWithAddr(replaceValues(P2, addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k>
+    rule <k> applyWingChanges((P1 \gap P2):WingHoonTallPair \gap P, Q) => applyWingChanges(P, substWithAddr(replaceValues(P2, addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k> requires isNameLookup(P1)
     rule <k> applyWingChanges((P1 \gap P2):WingHoonTallPair \gap P, Q) => applyWingChanges(P, substWithAddr(P2, wingToNumAddr(P1, Q), Q)) ... </k> [owise]
     rule <k> applyWingChanges(.WingHoonTallList, Q) => Q ... </k>
-    rule <k> applyWingChanges((P1:TasText \ace P2):WingHoonWidePair ,\ace P, Q) => applyWingChanges(P, substWithAddr(replaceValues(P2, addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k>
+    rule <k> applyWingChanges((P1 \ace P2):WingHoonWidePair ,\ace P, Q) => applyWingChanges(P, substWithAddr(replaceValues(P2, addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k> requires isNameLookup(P1)
     rule <k> applyWingChanges((P1 \ace P2):WingHoonWidePair ,\ace P, Q) => applyWingChanges(P, substWithAddr(P2, wingToNumAddr(P1, Q), Q)) ... </k> [owise]
     rule <k> applyWingChanges(.WingHoonWideList, Q) => Q ... </k>
     context applyWingChanges((_ \gap HOLE:Hoon):WingHoonTallPair \gap _, _)
@@ -664,6 +664,15 @@ module HOON-HELPER
     rule lookup(P:SkipTasText, Q, R, _) => lookup(getTasText(P), Q, R, numberOfSkips(P))
     rule lookup(P->PS, Q, R, I) => lookup(PS, lookup(P, Q, R, I), R, I) requires PS =/=K .WingStack
 
+    // Check if wing resolves to a name
+    syntax Bool ::= isNameLookup(Wing) [function]
+
+    rule isNameLookup(_:TasText) => true
+    rule isNameLookup(_:SkipTasText) => true
+    rule isNameLookup(_:TasText._) => true
+    rule isNameLookup(_:SkipTasText._) => true
+    rule isNameLookup(_) => false [owise]
+
     // Get the code in the battery that the wing refers to
     syntax Hoon ::= coreCode(TasText, ArmNames, Core) [function]
 
@@ -677,7 +686,7 @@ module HOON-HELPER
     rule nameInList(P, (N, _)) => true requires P ==K N
     rule nameInList(P, (_, N)) => nameInList(P, N) [owise]
 
-    // Convert wing into a stack of names/larks
+    // Convert wing into a wing stack
     syntax WingStack ::= toWingStack(Wing, WingStack) [function]
 
     rule toWingStack(P.Q, R) => toWingStack(Q, P->R)
@@ -733,12 +742,14 @@ module HOON-HELPER
 
     rule replLeft(({T1; N1}, P), ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Cell)) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q))
     rule replLeft(({T1; N1}, P), ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Core)) => ({[T1 \ace T2]; [N1 \ace N2]}, core(P, Q))
+    rule replLeft(P, ({_=T; N}, _=Q)) => replLeft(P, ({T; N}, Q))
 
     // Replace the right part of a cell or a core with the first noun
     syntax MetaNoun ::= replRight(MetaNoun, MetaNoun) [function]
 
     rule replRight(({T1; N1}, P), ({[T2 \ace _]; [N2 \ace _]}, [Q \ace _]:Cell)) => ({[T2 \ace T1]; [N2 \ace N1]}, cell(Q, P))
     rule replRight(({T1; N1}, P), ({[T2 \ace _]; [N2 \ace _]}, [Q \ace _]:Core)) => ({[T2 \ace T1]; [N2 \ace N1]}, core(Q, P))
+    rule replRight(P, ({_=T; N}, _=Q)) => replRight(P, ({T; N}, Q))
 
     // Replace the values in the second noun with the values of the first,
     // keeping the names in the second
