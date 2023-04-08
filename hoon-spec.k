@@ -48,6 +48,7 @@ module HOON-SPEC
             ({@ud; ?_}, ?C)
             ...
           </k>
+          <subject> _:MetaNoun </subject>
           ensures (UDToInt(?C) ==Int UDToInt(A)) orBool
                   (UDToInt(?C) ==Int UDToInt(B))
 
@@ -65,6 +66,7 @@ module HOON-SPEC
             ({@; ?_}, ?C)
             ...
           </k>
+          <subject> _:MetaNoun </subject>
           ensures (UDToInt(?C) ==Int UDToInt(A)) orBool
                   (UDToInt(?C) ==Int UDToInt(B))
 
@@ -85,6 +87,7 @@ module HOON-SPEC
             (?_, 0)
             ...
           </k>
+          <subject> _:MetaNoun </subject>
 
     // (add [1 1]) => 2
     claim <k>
@@ -108,6 +111,7 @@ module HOON-SPEC
             (?_, 2)
             ...
           </k>
+          <subject> _:MetaNoun </subject>
 
     // Sum one through five
     claim <k>
@@ -139,4 +143,5 @@ module HOON-SPEC
             (?_, 15)
             ...
           </k>
+          <subject> _:MetaNoun </subject>
 endmodule
