@@ -169,7 +169,7 @@ module HOON
 
     configuration
         <k> $PGM:Hoon </k>
-        <subject> (({typeOf(~); .ArmNames}, ~)->.Subject):Subject </subject>
+        <subject> (nullMetaNoun()->.Subject):Subject </subject>
 
     syntax Subject ::= List{MetaNoun, "->"}
 
@@ -814,6 +814,11 @@ module HOON-HELPER
     rule addrOf(P, ({[_ \ace T2]; [N1 \ace N2]}, [_ \ace Q2]:Core), R, I, S1->S) => addrOf(P, ({T2; N2}, Q2), R, I -Int 1, ((S1 *Int 2) +Int 1)->S) requires nameInList(P, N1) andBool I >Int 0
     rule addrOf(P, ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q2]:Core), R, I, S1->S) => addrOf(P, ({T2; N2}, Q2), R, I, ((S1 *Int 2) +Int 1)->S) [owise]
     rule addrOf(P, _, R1->R, I, _->S1->S) => addrOf(P, R1, R, I, ((S1 *Int 2) +Int 1)->S) [owise]
+
+    // Create a null meta noun
+    syntax MetaNoun ::= nullMetaNoun() [function]
+
+    rule nullMetaNoun() => ({typeOf(~); .ArmNames}, ~)
 
     // Helper functions
     syntax TasText ::= StringToTasText(String) [function, total, hook(STRING.string2token)]
