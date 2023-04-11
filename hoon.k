@@ -52,8 +52,7 @@ module HOON-SYNTAX
                   | "[" Hoon "\\ace" Hoon "\\ace" CellImplicit "]" [seqstrict]
     syntax CellImplicit ::= List{Hoon, "\\ace"}
 
-    syntax Wing ::= "\\dot"
-                  | NumAddr
+    syntax Wing ::= NumAddr
                   | Lark
                   | TasText
                   | SkipTasText
@@ -63,7 +62,7 @@ module HOON-SYNTAX
                     | Noun ":" Hoon [seqstrict(2)]
 
     syntax NumAddr ::= r"\\+[1-9][0-9]*" [token]
-    syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]" [token]
+    syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]|\\\\dot" [token]
     syntax SkipTasText ::= r"\\^+[a-z][a-z0-9\\-]*" [token]
 
     syntax WingHoonTallPair ::= Wing "\\gap" Hoon
@@ -629,6 +628,7 @@ module HOON-HELPER
     syntax MetaNoun ::= lark(String, MetaNoun) [function]
 
     rule lark(L, ({_=T; N}, _=P)) => lark(L, ({T; N}, P))
+    rule lark("\\dot", P) => P
     rule lark(L, ({[T \ace _]; [N \ace _]}, [P \ace _]:Cell)) => lark(tail(L), ({T; N}, P)) requires (head(L) ==K "-") orBool (head(L) ==K "<")
     rule lark(L, ({[_ \ace T]; [_ \ace N]}, [_ \ace Q]:Cell)) => lark(tail(L), ({T; N}, Q)) requires (head(L) ==K "+") orBool (head(L) ==K ">")
     rule lark(L, ({[_ \ace T]; [_ \ace N]}, [_ \ace Q]:Core)) => lark(tail(L), ({T; N}, Q)) requires (head(L) ==K "+") orBool (head(L) ==K ">")
@@ -653,7 +653,6 @@ module HOON-HELPER
 
     rule lookup(P:NumAddr, Q, _, _) => addr(P, Q)
     rule lookup(P:Lark, Q, _, _) => lark(LarkToString(P), Q)
-    rule lookup(\dot, Q, _, _) => Q
     rule lookup(P:TasText, ({_ = T; N}, Q1 = Q2), _, 0) => ({T; N}, Q2) requires P ==K Q1
     rule lookup(P:TasText, ({_; [N \ace _]}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
     rule lookup(P:TasText, (_, Q = _), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
@@ -797,9 +796,9 @@ module HOON-HELPER
     syntax IntStack ::= findAddrs(WingStack, Hoon, IntStack) [function]
 
     rule findAddrs(.WingStack, _, IS) => IS
-    rule findAddrs(\dot->P, Q:MetaNoun, IS) => findAddrs(P, Q, 1->IS)
     rule findAddrs(P1:NumAddr->P, Q:MetaNoun, IS) => findAddrs(P, Q, NumAddrToInt(P1)->IS)
-    rule findAddrs(P1:Lark->P, Q:MetaNoun, IS) => findAddrs(P, Q, LarkStringToInt(LarkToString(P1), 1)->IS)
+    rule findAddrs(\dot->P, Q:MetaNoun, IS) => findAddrs(P, Q, 1->IS)
+    rule findAddrs(P1:Lark->P, Q:MetaNoun, IS) => findAddrs(P, Q, LarkStringToInt(LarkToString(P1), 1)->IS) [owise]
     rule findAddrs(P1:TasText->P, Q:MetaNoun, IS) => findAddrs(P, lookup(P1, Q, .MetaNounStack, 0), addrOf(P1, Q, .MetaNounStack, 0, 1)->IS)
     rule findAddrs(P1:SkipTasText->P, Q:MetaNoun, IS) => findAddrs(P, lookup(P1, Q, .MetaNounStack, numberOfSkips(P1)), addrOf(getTasText(P1), Q, .MetaNounStack, numberOfSkips(P1), 1)->IS)
 
