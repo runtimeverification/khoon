@@ -435,12 +435,12 @@ module HOON-HELPER
     rule toUnsignedInts([P \ace Q]:Cell) => [toUnsignedInts(P) toUnsignedInts(Q)]
 
     // Convert an atom to its underlying unsigned integer
-    syntax Int ::= toUnsignedInt(Atom) [function]
+    syntax Int ::= toUnsignedInt(Atom) [function, total]
 
-    rule toUnsignedInt(~) => 0
+    rule toUnsignedInt(_:Null) => 0
     rule toUnsignedInt(%A:TasText) => String2Base(TextToHex(TasTextToString(A)), 16)
-    rule toUnsignedInt(%.y) => 0
-    rule toUnsignedInt(%.n) => 1
+    rule toUnsignedInt(%Y:TasBool) => 0 requires Y ==K .y
+    rule toUnsignedInt(%_:TasBool) => 1 [owise]
     rule toUnsignedInt(%A:UD) => String2Int(replaceAll(UDToString(A), ".", ""))
     rule toUnsignedInt(%A:UI) => String2Int(replaceFirst(UIToString(A), "0i", ""))
     rule toUnsignedInt(%$) => 0
