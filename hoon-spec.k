@@ -49,8 +49,7 @@ module HOON-SPEC
             ...
           </k>
           <subject> _:MetaNoun </subject>
-          ensures (UDToInt(?C) ==Int UDToInt(A)) orBool
-                  (UDToInt(?C) ==Int UDToInt(B))
+          ensures (?C ==K A) orBool (?C ==K B)
 
     // c is a or b (gate version)
     claim <k>
@@ -67,8 +66,7 @@ module HOON-SPEC
             ...
           </k>
           <subject> _:MetaNoun </subject>
-          ensures (UDToInt(?C) ==Int UDToInt(A)) orBool
-                  (UDToInt(?C) ==Int UDToInt(B))
+          ensures (?C ==K A) orBool (?C ==K B)
 
     // (dec 1) => 0
     claim <k>
