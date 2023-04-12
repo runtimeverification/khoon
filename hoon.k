@@ -62,7 +62,7 @@ module HOON-SYNTAX
                   | Wing "." Wing [right]
 
     syntax Lookup ::= Wing ":" Hoon [seqstrict(2)]
-                    | Noun ":" Hoon [seqstrict(2)]
+                    | Noun ":" Hoon
 
     syntax NumAddr ::= r"\\+[1-9][0-9]*" [token]
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]|\\\\dot" [token]
