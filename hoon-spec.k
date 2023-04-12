@@ -10,14 +10,14 @@ module HOON-SPEC-SYNTAX
                 | "6" [token]
                 | "15" [token]
 
-    syntax TasText ::= "a" [token]
-                     | "b" [token]
-                     | "c" [token]
-                     | "foo" [token]
-                     | "dec" [token]
-                     | "add" [token]
-                     | "counter" [token]
-                     | "sum" [token]
+    syntax Name ::= "a" [token]
+                  | "b" [token]
+                  | "c" [token]
+                  | "foo" [token]
+                  | "dec" [token]
+                  | "add" [token]
+                  | "counter" [token]
+                  | "sum" [token]
 endmodule
 
 module VERIFICATION

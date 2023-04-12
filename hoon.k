@@ -25,7 +25,7 @@ module HOON-SYNTAX
 
     syntax Noun ::= Atom
                   | Cell
-                  | TasText "=" Noun
+                  | Name "=" Noun
                   | Digraph
 
     syntax Atom ::= TAS
@@ -33,11 +33,14 @@ module HOON-SYNTAX
                   | UI
                   | Null
 
-    syntax TAS ::= "%" TasText | "%" TasBool | "%" TasNumber
-    syntax TasText ::= r"([a-z][a-z0-9\\-]*)|\\$" [token]
-    syntax TasBool ::= ".y" [token]
-                     | ".n" [token]
-    syntax TasNumber ::= UD | UI
+    syntax TAS ::= "%" Name | "%" BoolName | "%" Number
+
+    syntax Name ::= r"([a-z][a-z0-9\\-]*)|\\$" [token]
+
+    syntax BoolName ::= ".y" [token]
+                      | ".n" [token]
+
+    syntax Number ::= UD | UI
 
     syntax UD ::= r"{UD}" [token]
 
@@ -54,8 +57,8 @@ module HOON-SYNTAX
 
     syntax Wing ::= NumAddr
                   | Lark
-                  | TasText
-                  | SkipTasText
+                  | Name
+                  | KetName
                   | Wing "." Wing [right]
 
     syntax Lookup ::= Wing ":" Hoon [seqstrict(2)]
@@ -63,7 +66,7 @@ module HOON-SYNTAX
 
     syntax NumAddr ::= r"\\+[1-9][0-9]*" [token]
     syntax Lark ::= r"([-+][<>]([-+][<>])*[-+]?)|[-+]|\\\\dot" [token]
-    syntax SkipTasText ::= r"\\^+[a-z][a-z0-9\\-]*" [token]
+    syntax KetName ::= r"\\^+[a-z][a-z0-9\\-]*" [token]
 
     syntax WingHoonTallPair ::= Wing "\\gap" Hoon
     syntax WingHoonTallList ::= List{WingHoonTallPair, "\\gap"}
@@ -72,7 +75,7 @@ module HOON-SYNTAX
     syntax WingHoonWideList ::= List{WingHoonWidePair, ",\\ace"}
 
     // TODO Add remaining arms (lus)
-    syntax Arm ::= "++" "\\gap" TasText "\\gap" Hoon
+    syntax Arm ::= "++" "\\gap" Name "\\gap" Hoon
     syntax ArmList ::= List{Arm, "\\gap"}
 
     // |_ |% syntax does not work with LR(1), but works with GLR
@@ -83,7 +86,7 @@ module HOON-SYNTAX
                       | "|=" "\\gap" Spec "\\gap" Hoon
                       | "$=" "\\gap" Skin "\\gap" Spec
                       | "%-" "\\gap" Hoon "\\gap" Hoon
-                      | "%~" "\\gap" TasText "\\gap" Hoon "\\gap" Hoon [seqstrict(2,3)]
+                      | "%~" "\\gap" Name "\\gap" Hoon "\\gap" Hoon [seqstrict(2,3)]
                       | "%=" "\\gap" Wing "\\gap" WingHoonTallList "\\gap" "=="
                       | ":-" "\\gap" Hoon "\\gap" Hoon [seqstrict]
                       | ".+" "\\gap" Hoon [seqstrict]
@@ -109,7 +112,7 @@ module HOON-SYNTAX
                       | "|=" "(" Spec "\\ace" WideExp ")"
                       | "$=" "(" Skin "\\ace" Spec ")"
                       | "%-" "(" WideExp "\\ace" WideExp ")"
-                      | "%~" "(" TasText "\\ace" WideExp "\\ace" WideExp ")" [seqstrict(2,3)]
+                      | "%~" "(" Name "\\ace" WideExp "\\ace" WideExp ")" [seqstrict(2,3)]
                       | "%=" "(" Wing "\\ace" WingHoonWideList ")"
                       | ":-" "(" WideExp "\\ace" WideExp ")" [seqstrict]
                       | ".+" "(" WideExp ")" [seqstrict]
@@ -141,7 +144,7 @@ module HOON-SYNTAX
                   | "?"
                   | "~"
                   | Aura
-                  | TasText "=" Spec [avoid]
+                  | Name "=" Spec [avoid]
     syntax SpecCellImplicit ::= List{Spec, "\\ace"}
 
     syntax Aura ::= AText
@@ -153,8 +156,8 @@ module HOON-SYNTAX
                   | "@ud"
                   | "@ui"
 
-    syntax Skin ::= TasText
-                  | TasText "=" Skin
+    syntax Skin ::= Name
+                  | Name "=" Skin
                   | "[" Skin "\\ace" Skin "]" [avoid]
                   | "[" Skin "\\ace" Skin "\\ace" SkinCellImplicit "]"
     syntax SkinCellImplicit ::= List{Skin, "\\ace"}
@@ -322,8 +325,8 @@ module HOON
     rule <k> =| (P \ace Q) => =+(^*(P) \ace Q) ... </k>
 
     // tisfas
-    rule <k> =/ \gap P:TasText \gap Q \gap R => =+ \gap ^=(P \ace Q) \gap R ... </k>
-    rule <k> =/ (P:TasText \ace Q \ace R) => =+(^=(P \ace Q) \ace R) ... </k>
+    rule <k> =/ \gap P:Name \gap Q \gap R => =+ \gap ^=(P \ace Q) \gap R ... </k>
+    rule <k> =/ (P:Name \ace Q \ace R) => =+(^=(P \ace Q) \ace R) ... </k>
     rule <k> =/ \gap P:Spec \gap Q \gap R => =+ \gap ^-(P \ace Q) \gap R ... </k>
     rule <k> =/ (P:Spec \ace Q \ace R) => =+(^-(P \ace Q) \ace R) ... </k>
 
@@ -371,7 +374,7 @@ module HOON-META
     // Type and list of arm names
     syntax Meta ::= "{" Spec ";" ArmNames "}"
 
-    syntax ArmNames ::= List{TasText, ","}
+    syntax ArmNames ::= List{Name, ","}
                       | "[" ArmNames "\\ace" ArmNames "]"
 
     syntax TallExp ::= MetaNoun
@@ -437,9 +440,9 @@ module HOON-HELPER
     syntax Int ::= toUnsignedInt(Atom) [function, total]
 
     rule toUnsignedInt(_:Null) => 0
-    rule toUnsignedInt(%A:TasText) => String2Base(TextToHex(TasTextToString(A)), 16)
-    rule toUnsignedInt(%Y:TasBool) => 0 requires Y ==K .y
-    rule toUnsignedInt(%_:TasBool) => 1 [owise]
+    rule toUnsignedInt(%A:Name) => String2Base(TextToHex(NameToString(A)), 16)
+    rule toUnsignedInt(%Y:BoolName) => 0 requires Y ==K .y
+    rule toUnsignedInt(%_:BoolName) => 1 [owise]
     rule toUnsignedInt(%A:UD) => String2Int(replaceAll(UDToString(A), ".", ""))
     rule toUnsignedInt(%A:UI) => String2Int(replaceFirst(UIToString(A), "0i", ""))
     rule toUnsignedInt(%$) => 0
@@ -485,21 +488,21 @@ module HOON-HELPER
     // the same code (assumes equal length)
     syntax Bool ::= sameArmsEq(Battery, ArmNames, Battery, ArmNames) [function]
 
-    rule sameArmsEq(P:Hoon, N:TasText, Q, M) => P ==K getBatteryCode(N, Q, M) requires inArm(N, M)
+    rule sameArmsEq(P:Hoon, N:Name, Q, M) => P ==K getBatteryCode(N, Q, M) requires inArm(N, M)
     rule sameArmsEq(P1 \sep P, (N1, N), Q, M) => P1 ==K getBatteryCode(N1, Q, M) andBool sameArmsEq(P, N, Q, M) requires inArm(N1, M) [priority(51)]
     rule sameArmsEq(_, _, _, _) => true [owise]
 
     // Get battery code by arm name
-    syntax Hoon ::= getBatteryCode(TasText, Battery, ArmNames) [function]
+    syntax Hoon ::= getBatteryCode(Name, Battery, ArmNames) [function]
 
-    rule getBatteryCode(N, P:Hoon, M:TasText) => P requires N ==K M
+    rule getBatteryCode(N, P:Hoon, M:Name) => P requires N ==K M
     rule getBatteryCode(N, P1 \sep _, (M1, _)) => P1 requires N ==K M1 [owise]
     rule getBatteryCode(N, _ \sep P, (M1, M)) => getBatteryCode(N, P, M) requires N =/=K M1 [owise]
 
     // Check if name is in arm names
-    syntax Bool ::= inArm(TasText, ArmNames) [function]
+    syntax Bool ::= inArm(Name, ArmNames) [function]
 
-    rule inArm(N, M:TasText) => N ==K M
+    rule inArm(N, M:Name) => N ==K M
     rule inArm(N, (M1, _)) => true requires N ==K M1 [owise]
     rule inArm(N, (M1, M)) => inArm(N, M) requires N =/=K M1 [owise]
 
@@ -514,8 +517,8 @@ module HOON-HELPER
     rule nests(?, %.y) => true
     rule nests(?, %.n) => true
     rule nests(~, ~) => true
-    rule nests(@tas, %_:TasText) => true
-    rule nests(@tas, %_:TasNumber) => true
+    rule nests(@tas, %_:Name) => true
+    rule nests(@tas, %_:Number) => true
     rule nests(@tas, @) => true
     rule nests(@u, _:AInt) => true
     rule nests(@u, @) => true
@@ -563,7 +566,7 @@ module HOON-HELPER
     rule typeOf([P \ace Q]:Cell) => [typeOf(P) \ace typeOf(Q)]
     rule typeOf([_ \ace Q]:Core) => [* \ace typeOf(Q)]
     rule typeOf(P=Q) => P=typeOf(Q)
-    rule typeOf(!!) => % StringToTasText("void")
+    rule typeOf(!!) => % StringToName("void")
 
     // Bunt value of spec
     syntax MetaNoun ::= bunt(Spec) [function]
@@ -607,7 +610,7 @@ module HOON-HELPER
     // Bind a name to a value
     syntax MetaNoun ::= name(Skin, MetaNoun) [function]
 
-    rule name(N:TasText, ({T; M}, P)) => ({N=T; M}, N=P)
+    rule name(N:Name, ({T; M}, P)) => ({N=T; M}, N=P)
     rule name(N1=N2, ({T; M}, P)) => ({N1=getSpec(name(N2, ({T; M}, P))); M}, N1=getNoun(name(N2, ({T; M}, P))))
     rule name([N1 \ace N2], ({[T1 \ace T2]; [M1 \ace M2]}, [P1 \ace P2]:Cell)) => metaCell(name(N1, ({T1; M1}, P1)), name(N2, ({T2; M2}, P2)))
     rule name([N1 \ace N2 \ace Ns], P) => name([N1 \ace N2], P) requires Ns ==K .SkinCellImplicit
@@ -618,7 +621,7 @@ module HOON-HELPER
     // TODO Make exhaustive
     syntax Noun ::= toType(Spec, Noun) [function]
 
-    rule toType(@tas, Q:UD) => % StringToTasText(UDToText(Q))
+    rule toType(@tas, Q:UD) => % StringToName(UDToText(Q))
     rule toType(@, Q:Atom) => IntToUD(toUnsignedInt(Q))
     rule toType(P1=P, Q) => P1=toType(P, Q)
     rule toType([T1 \ace T2], [P \ace Q]:Cell) => cell(toType(T1, P), toType(T2, Q))
@@ -653,33 +656,33 @@ module HOON-HELPER
 
     rule lookup(P:NumAddr, Q, _, _) => addr(P, Q)
     rule lookup(P:Lark, Q, _, _) => lark(LarkToString(P), Q)
-    rule lookup(P:TasText, ({_ = T; N}, Q1 = Q2), _, 0) => ({T; N}, Q2) requires P ==K Q1
-    rule lookup(P:TasText, ({_; [N \ace _]}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
-    rule lookup(P:TasText, (_, Q = _), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
-    rule lookup(P:TasText, ({[_ \ace T2]; [N1 \ace N2]}, [_ \ace Q2]:Core), R, I) => lookup(P, ({T2; N2}, Q2), R, I -Int 1) requires nameInList(P, N1) andBool I >Int 0
-    rule lookup(P:TasText, ({[T1 \ace T2]; [N1 \ace N2]}, [Q1 \ace Q2]:Cell), R, I) => lookup(P, ({T1; N1}, Q1), ({T2; N2}, Q2)->R, I)
-    rule lookup(P:TasText, ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q2]:Core), R, I) => lookup(P, ({T2; N2}, Q2), R, I) [owise]
-    rule lookup(P:TasText, _, R1->R, I) => lookup(P, R1, R, I) [owise]
-    rule lookup(P:SkipTasText, Q, R, _) => lookup(getTasText(P), Q, R, numberOfSkips(P))
+    rule lookup(P:Name, ({_ = T; N}, Q1 = Q2), _, 0) => ({T; N}, Q2) requires P ==K Q1
+    rule lookup(P:Name, ({_; [N \ace _]}, Q:Core), _, 0) => coreCode(P, N, Q) requires nameInList(P, N)
+    rule lookup(P:Name, (_, Q = _), R1->R, I) => lookup(P, R1, R, I -Int 1)  requires P ==K Q andBool I >Int 0
+    rule lookup(P:Name, ({[_ \ace T2]; [N1 \ace N2]}, [_ \ace Q2]:Core), R, I) => lookup(P, ({T2; N2}, Q2), R, I -Int 1) requires nameInList(P, N1) andBool I >Int 0
+    rule lookup(P:Name, ({[T1 \ace T2]; [N1 \ace N2]}, [Q1 \ace Q2]:Cell), R, I) => lookup(P, ({T1; N1}, Q1), ({T2; N2}, Q2)->R, I)
+    rule lookup(P:Name, ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q2]:Core), R, I) => lookup(P, ({T2; N2}, Q2), R, I) [owise]
+    rule lookup(P:Name, _, R1->R, I) => lookup(P, R1, R, I) [owise]
+    rule lookup(P:KetName, Q, R, _) => lookup(getNameFromKetName(P), Q, R, numberOfKets(P))
     rule lookup(P->PS, Q, R, I) => lookup(PS, lookup(P, Q, R, I), R, I) requires PS =/=K .WingStack
 
     // Check if wing resolves to a name
     syntax Bool ::= isNameLookup(Wing) [function]
 
-    rule isNameLookup(_:TasText) => true
-    rule isNameLookup(_:SkipTasText) => true
-    rule isNameLookup(_:TasText._) => true
-    rule isNameLookup(_:SkipTasText._) => true
+    rule isNameLookup(_:Name) => true
+    rule isNameLookup(_:KetName) => true
+    rule isNameLookup(_:Name._) => true
+    rule isNameLookup(_:KetName._) => true
     rule isNameLookup(_) => false [owise]
 
     // Get the code in the battery that the wing refers to
-    syntax Hoon ::= coreCode(TasText, ArmNames, Core) [function]
+    syntax Hoon ::= coreCode(Name, ArmNames, Core) [function]
 
     rule coreCode(P, (N, _), [Q \sep _ \ace _]) => Q requires P ==K N
     rule coreCode(P, (_, N), [_ \sep Q \ace R]) => coreCode(P, N, [Q \ace R]) [owise]
 
     // Check if wing is in arm names
-    syntax Bool ::= nameInList(TasText, ArmNames) [function]
+    syntax Bool ::= nameInList(Name, ArmNames) [function]
 
     rule nameInList(_, .ArmNames) => false
     rule nameInList(P, (N, _)) => true requires P ==K N
@@ -799,12 +802,12 @@ module HOON-HELPER
     rule findAddrs(P1:NumAddr->P, Q:MetaNoun, IS) => findAddrs(P, Q, NumAddrToInt(P1)->IS)
     rule findAddrs(\dot->P, Q:MetaNoun, IS) => findAddrs(P, Q, 1->IS)
     rule findAddrs(P1:Lark->P, Q:MetaNoun, IS) => findAddrs(P, Q, LarkStringToInt(LarkToString(P1), 1)->IS) [owise]
-    rule findAddrs(P1:TasText->P, Q:MetaNoun, IS) => findAddrs(P, lookup(P1, Q, .MetaNounStack, 0), addrOf(P1, Q, .MetaNounStack, 0, 1)->IS)
-    rule findAddrs(P1:SkipTasText->P, Q:MetaNoun, IS) => findAddrs(P, lookup(P1, Q, .MetaNounStack, numberOfSkips(P1)), addrOf(getTasText(P1), Q, .MetaNounStack, numberOfSkips(P1), 1)->IS)
+    rule findAddrs(P1:Name->P, Q:MetaNoun, IS) => findAddrs(P, lookup(P1, Q, .MetaNounStack, 0), addrOf(P1, Q, .MetaNounStack, 0, 1)->IS)
+    rule findAddrs(P1:KetName->P, Q:MetaNoun, IS) => findAddrs(P, lookup(P1, Q, .MetaNounStack, numberOfKets(P1)), addrOf(getNameFromKetName(P1), Q, .MetaNounStack, numberOfKets(P1), 1)->IS)
 
     // Get numeric address of a name. If it is an arm name, the address of the
     // parent core is returned
-    syntax Int ::= addrOf(TasText, Hoon, MetaNounStack, Int, IntStack) [function]
+    syntax Int ::= addrOf(Name, Hoon, MetaNounStack, Int, IntStack) [function]
 
     rule addrOf(P, (_, Q1 = _), _, 0, S1->_) => S1 requires P ==K Q1
     rule addrOf(P, (_, Q1 = _), R1->R, I, _->S) => addrOf(P, R1, R, I -Int 1, S) requires (I >Int 0) andBool (P ==K Q1)
@@ -820,15 +823,15 @@ module HOON-HELPER
     rule nullMetaNoun() => ({typeOf(~); .ArmNames}, ~)
 
     // Helper functions
-    syntax TasText ::= StringToTasText(String) [function, total, hook(STRING.string2token)]
+    syntax Name ::= StringToName(String) [function, total, hook(STRING.string2token)]
     syntax UD ::= StringToUD(String) [function, total, hook(STRING.string2token)]
     syntax NumAddr ::= StringToNumAddr(String) [function, total, hook(STRING.string2token)]
 
-    syntax String ::= TasTextToString(TasText) [function, total, hook(STRING.token2string)]
+    syntax String ::= NameToString(Name) [function, total, hook(STRING.token2string)]
                     | UDToString(UD) [function, total, hook(STRING.token2string)]
                     | UIToString(UI) [function, total, hook(STRING.token2string)]
                     | LarkToString(Lark) [function, total, hook(STRING.token2string)]
-                    | SkipTasTextToString(SkipTasText) [function, total, hook(STRING.token2string)]
+                    | KetNameToString(KetName) [function, total, hook(STRING.token2string)]
                     | NumAddrToString(NumAddr) [function, total, hook(STRING.token2string)]
 
     syntax String ::= addrsToDir(IntStack) [function, total]
@@ -871,15 +874,15 @@ module HOON-HELPER
     syntax NumAddr ::= LarkStringToNumAddr(String, Int) [function]
     rule LarkStringToNumAddr(P, I) => StringToNumAddr("+" +String Int2String(LarkStringToInt(P, I)))
 
-    syntax TasText ::= getTasText(SkipTasText) [function]
-    rule getTasText(P) => StringToTasText(cutSkips(SkipTasTextToString(P)))
+    syntax Name ::= getNameFromKetName(KetName) [function]
+    rule getNameFromKetName(P) => StringToName(cutSkips(KetNameToString(P)))
 
     syntax String ::= cutSkips(String) [function]
     rule cutSkips(P) => cutSkips(tail(P)) requires head(P) ==String "^"
     rule cutSkips(P) => P [owise]
 
-    syntax Int ::= numberOfSkips(SkipTasText) [function]
-    rule numberOfSkips(P) => ketPrefixLength(SkipTasTextToString(P))
+    syntax Int ::= numberOfKets(KetName) [function]
+    rule numberOfKets(P) => ketPrefixLength(KetNameToString(P))
 
     syntax Int ::= ketPrefixLength(String) [function]
     rule ketPrefixLength(P) => ketPrefixLength(tail(P)) +Int 1 requires head(P) ==String "^"
