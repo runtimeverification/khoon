@@ -213,8 +213,8 @@ module HOON
          <subject> S->_ </subject>
 
     // Wing the specified noun
-    rule <k> (P : Q):TallExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k> [owise]
-    rule <k> (P : Q):WideExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k> [owise]
+    rule <k> (P:Wing : Q):TallExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k>
+    rule <k> (P:Wing : Q):WideExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k>
     rule <k> (P:Noun : _):TallExp => P ... </k>
     rule <k> (P:Noun : _):WideExp => P ... </k>
 
