@@ -87,10 +87,10 @@ module HOON-SPEC
           </k>
           <subject> _:MetaNoun </subject>
 
-    // (add [1 1]) => 2
+    // (add [0 1]) => 1
     claim <k>
             =< \gap
-            %-(add \ace [1 \ace 1]:Cell) \gap
+            %-(add \ace [0 \ace 1]:Cell) \gap
             |% \gap
             ++ \gap add \gap
               |= \gap [a=@\aceb=@] \gap
@@ -106,7 +106,7 @@ module HOON-SPEC
               %=($ \ace b \ace .+(b)) \gap
             --
           =>
-            (?_, 2)
+            (?_, 1)
             ...
           </k>
           <subject> _:MetaNoun </subject>
