@@ -30,7 +30,7 @@ module HOON-SPEC
     imports VERIFICATION
 
     // :-(0 1) => [0 1]
-    claim <k>
+    claim [cell]: <k>
             :-(0 \ace 1)
           =>
             ({[@ud \ace @ud]; ?_}, [0 \ace 1]:Cell)
@@ -38,7 +38,7 @@ module HOON-SPEC
           </k>
 
     // c is a or b
-    claim <k>
+    claim [AorB0]: <k>
             =/ \gap a \gap A:UD \gap
             =/ \gap b \gap B:UD \gap
             =/ \gap c \gap
@@ -52,7 +52,7 @@ module HOON-SPEC
           ensures (?C ==K A) orBool (?C ==K B)
 
     // c is a or b (gate version)
-    claim <k>
+    claim [AorB1]: <k>
             =< \gap
             %-(foo \ace [A:UD \ace B:UD]:Cell) \gap
             ^= \gap foo \gap
@@ -69,7 +69,7 @@ module HOON-SPEC
           ensures (?C ==K A) orBool (?C ==K B)
 
     // (dec 1) => 0
-    claim <k>
+    claim [dec]: <k>
             =< \gap
             %-(dec \ace 1) \gap
             |% \gap
@@ -88,7 +88,7 @@ module HOON-SPEC
           <subject> _:MetaNoun </subject>
 
     // (add [0 1]) => 1
-    claim <k>
+    claim [add]: <k>
             =< \gap
             %-(add \ace [0 \ace 1]:Cell) \gap
             |% \gap
@@ -112,7 +112,7 @@ module HOON-SPEC
           <subject> _:MetaNoun </subject>
 
     // Sum one through five
-    claim <k>
+    claim [counter]: <k>
             =< \gap
             =/ \gap counter \gap 1 \gap
             =/ \gap sum \gap 0 \gap
