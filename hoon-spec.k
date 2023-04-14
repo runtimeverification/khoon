@@ -24,6 +24,7 @@ module VERIFICATION
     imports HOON-SPEC-SYNTAX
     imports HOON
 
+    rule StringToUD(IntStringToUDString(Int2String(String2Int(replace(UDToString(P), ".", "", countAllOccurrences (UDToString(P), ".")))))) ==K P:UD => true [simplification]
 endmodule
 
 module HOON-SPEC
