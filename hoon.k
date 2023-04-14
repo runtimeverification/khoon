@@ -875,11 +875,11 @@ module HOON-HELPER
     rule LarkStringToNumAddr(P, I) => StringToNumAddr("+" +String Int2String(LarkStringToInt(P, I)))
 
     syntax Name ::= getNameFromKetName(KetName) [function]
-    rule getNameFromKetName(P) => StringToName(cutSkips(KetNameToString(P)))
+    rule getNameFromKetName(P) => StringToName(cutKets(KetNameToString(P)))
 
-    syntax String ::= cutSkips(String) [function]
-    rule cutSkips(P) => cutSkips(tail(P)) requires head(P) ==String "^"
-    rule cutSkips(P) => P [owise]
+    syntax String ::= cutKets(String) [function]
+    rule cutKets(P) => cutKets(tail(P)) requires head(P) ==String "^"
+    rule cutKets(P) => P [owise]
 
     syntax Int ::= numberOfKets(KetName) [function]
     rule numberOfKets(P) => ketPrefixLength(KetNameToString(P))
