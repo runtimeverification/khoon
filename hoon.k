@@ -52,7 +52,7 @@ module HOON-SYNTAX
     syntax lexical UI = r"(0i)(0{1}|[1-9]{1}[0-9]*)"
 
     syntax Cell ::= "[" Hoon "\\ace" Hoon "]" [seqstrict]
-                  | "[" Hoon "\\ace" Hoon "\\ace" CellImplicit "]" [seqstrict]
+                  | "[" Hoon "\\ace" Hoon "\\ace" CellImplicit "]"
     syntax CellImplicit ::= List{Hoon, "\\ace"}
 
     syntax Wing ::= NumAddr
