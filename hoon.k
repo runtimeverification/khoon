@@ -287,8 +287,8 @@ module HOON
     rule <k> %=(P \ace Q) => centisLeg(P, Q, .WingHoonWideList) ... </k> [owise]
 
     // colhep
-    rule <k> :- \gap ({T1; N1}, P) \gap ({T2; N2}, Q) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
-    rule <k> :-(({T1; N1}, P) \ace ({T2; N2}, Q)) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
+    rule <k> :- \gap P \gap Q => metaCell(P, Q) ... </k>
+    rule <k> :-(P \ace Q) => metaCell(P, Q) ... </k>
 
     // dotlus
     rule <k> .+ \gap (_, P) => ({@; .ArmNames}, IntToUD(toUnsignedInt(P) +Int 1)) ... </k>
