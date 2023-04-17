@@ -742,16 +742,16 @@ module HOON-HELPER
     // Replace the left part of a cell or a core with the first noun
     syntax MetaNoun ::= replLeft(MetaNoun, MetaNoun) [function]
 
-    rule replLeft(({T1; N1}, P), ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Cell)) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q))
-    rule replLeft(({T1; N1}, P), ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Core)) => ({[T1 \ace T2]; [N1 \ace N2]}, core(P, Q))
-    rule replLeft(P, ({_=T; N}, _=Q)) => replLeft(P, ({T; N}, Q))
+    rule replLeft(({T1; N1}, P), ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Cell)) => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) [owise]
+    rule replLeft(({T1; N1}, P), ({[_ \ace T2]; [_ \ace N2]}, [_ \ace Q]:Core)) => ({[T1 \ace T2]; [N1 \ace N2]}, core(P, Q)) [owise]
+    rule replLeft(P, ({T1=T; N}, _=Q)) => name(T1, replLeft(P, ({T; N}, Q)))
 
     // Replace the right part of a cell or a core with the first noun
     syntax MetaNoun ::= replRight(MetaNoun, MetaNoun) [function]
 
-    rule replRight(({T1; N1}, P), ({[T2 \ace _]; [N2 \ace _]}, [Q \ace _]:Cell)) => ({[T2 \ace T1]; [N2 \ace N1]}, cell(Q, P))
-    rule replRight(({T1; N1}, P), ({[T2 \ace _]; [N2 \ace _]}, [Q \ace _]:Core)) => ({[T2 \ace T1]; [N2 \ace N1]}, core(Q, P))
-    rule replRight(P, ({_=T; N}, _=Q)) => replRight(P, ({T; N}, Q))
+    rule replRight(({T1; N1}, P), ({[T2 \ace _]; [N2 \ace _]}, [Q \ace _]:Cell)) => ({[T2 \ace T1]; [N2 \ace N1]}, cell(Q, P)) [owise]
+    rule replRight(({T1; N1}, P), ({[T2 \ace _]; [N2 \ace _]}, [Q \ace _]:Core)) => ({[T2 \ace T1]; [N2 \ace N1]}, core(Q, P)) [owise]
+    rule replRight(P, ({T1=T; N}, _=Q)) => name(T1, replRight(P, ({T; N}, Q)))
 
     // Replace the values in the second noun with the values of the first,
     // keeping the names in the second
