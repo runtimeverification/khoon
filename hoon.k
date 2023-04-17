@@ -339,9 +339,9 @@ module HOON
     rule <k> => (P \ace Q) => push(P) ~> Q ~> pop() ... </k>
 
     // tislus
-    rule <k> =+ \gap P \gap Q => => \gap metaCell(P, S) \gap Q ... </k>
+    rule <k> =+ \gap P \gap Q => => \gap :- \gap P \gap S \gap Q ... </k>
          <subject> S->_ </subject>
-    rule <k> =+(P \ace Q) => =>(metaCell(P, S) \ace Q) ... </k>
+    rule <k> =+(P \ace Q) => => \gap :- \gap P \gap S \gap Q ... </k>
          <subject> S->_ </subject>
 
     // wutcol
