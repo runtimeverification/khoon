@@ -251,6 +251,10 @@ module HOON
     context centisLeg(_, _ \gap HOLE:Hoon \gap _, _)
     context centisLeg(_, _ \ace HOLE:Hoon ,\ace _, _)
 
+    // Evaluate an arm in a door
+    syntax Hoon ::= evalArm(Wing, MetaNoun, MetaNoun)
+    rule <k> evalArm(P, Q, R) => push(substWithAddr(replaceValues(unname(R), addr(StringToNumAddr("+6"), Q)), StringToNumAddr("+6"), Q)) ~> getBatteryCode(P, getBattery(Q), getCoreArmNames(Q)) ~> pop() ... </k>
+
     // barcab
     rule <k> |_ \gap P \gap Q \gap -- => =| \gap P \gap |% \gap Q \gap -- ... </k>
 
@@ -279,8 +283,8 @@ module HOON
     rule <k> %-(P \ace Q) => %~($ \ace P \ace Q) ... </k>
 
     // censig
-    rule <k> %~ \gap P \gap ({T; [N1 \ace N2]}, [Q1 \ace Q2]:Core) \gap R => push(substWithAddr(replaceValues(unname(R), addr(StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))), StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))) ~> getBatteryCode(P, Q1, N1) ~> pop() ... </k>
-    rule <k> %~(P \ace ({T; [N1 \ace N2]}, [Q1 \ace Q2]:Core) \ace R) => push(substWithAddr(replaceValues(unname(R), addr(StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))), StringToNumAddr("+6"), ({T; [N1 \ace N2]}, [Q1 \ace Q2]))) ~> getBatteryCode(P, Q1, N1) ~> pop() ... </k>
+    rule <k> %~ \gap P \gap Q \gap R => evalArm(P, Q, R) ... </k> [owise]
+    rule <k> %~(P \ace Q \ace R) => evalArm(P, Q, R) ... </k> [owise]
     rule <k> %~ \gap P \gap (_, Q:TAS) \gap R => %~ \gap P \gap mold(Q, S) \gap R ... </k>
          <subject> S->_ </subject>
     rule <k> %~(P \ace (_, Q:TAS) \ace R) => %~(P \ace mold(Q, S) \ace R) ... </k>
