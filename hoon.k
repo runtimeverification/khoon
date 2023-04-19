@@ -230,6 +230,14 @@ module HOON
     context applyWingChanges((_ \gap HOLE:Hoon):WingHoonTallPair \gap _, _)
     context applyWingChanges((_ \ace HOLE:Hoon):WingHoonWidePair ,\ace _, _)
 
+    // Arm case of centis
+    syntax Hoon ::= centisArm(Wing, WingHoonTallList)
+                  | centisArm(Wing, WingHoonWideList)
+    rule <k> centisArm(P, Q:WingHoonTallList) => push(applyWingChanges(Q, getParentCore(P, S))) ~> getBatteryCode(P, getBattery(getParentCore(P, S)), getCoreArmNames(getParentCore(P, S))) ~> pop() ... </k>
+         <subject> S->_ </subject>
+    rule <k> centisArm(P, Q:WingHoonWideList) => push(applyWingChanges(Q, getParentCore(P, S))) ~> getBatteryCode(P, getBattery(getParentCore(P, S)), getCoreArmNames(getParentCore(P, S))) ~> pop() ... </k>
+         <subject> S->_ </subject>
+
     // Leg case of centis. Evaluate the hoon part in the list of wing hoon
     // pairs before making P the subject
     syntax Hoon ::= centisLeg(Wing, WingHoonTallList, WingHoonTallList)
@@ -279,9 +287,9 @@ module HOON
          <subject> S->_ </subject>
 
     // centis
-    rule <k> %= \gap P \gap Q \gap == => push(applyWingChanges(Q, getParentCore(P, S))) ~> getBatteryCode(P, getBattery(getParentCore(P, S)), getCoreArmNames(getParentCore(P, S))) ~> pop() ... </k>
+    rule <k> %= \gap P \gap Q \gap == => centisArm(P, Q) ... </k>
          <subject> S->_ </subject> requires isArmName(P, S)
-    rule <k> %=(P \ace Q) => push(applyWingChanges(Q, getParentCore(P, S))) ~> getBatteryCode(P, getBattery(getParentCore(P, S)), getCoreArmNames(getParentCore(P, S))) ~> pop() ... </k>
+    rule <k> %=(P \ace Q) => centisArm(P, Q) ... </k>
          <subject> S->_ </subject> requires isArmName(P, S)
     rule <k> %= \gap P \gap Q \gap == => centisLeg(P, Q, .WingHoonTallList) ... </k> [owise]
     rule <k> %=(P \ace Q) => centisLeg(P, Q, .WingHoonWideList) ... </k> [owise]
