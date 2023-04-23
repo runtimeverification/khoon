@@ -101,7 +101,7 @@ module HOON-SYNTAX
                       | "=/" "\\gap" Spec "\\gap" Hoon "\\gap" Hoon
                       | "=<" "\\gap" Hoon "\\gap" Hoon
                       | "=>" "\\gap" Hoon "\\gap" Hoon
-                      | "=+" "\\gap" Hoon "\\gap" Hoon [seqstrict(1)]
+                      | "=+" "\\gap" Hoon "\\gap" Hoon
                       | "?:" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon [seqstrict(1)]
                       | "?<" "\\gap" Hoon "\\gap" Hoon
                       | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon
@@ -127,7 +127,7 @@ module HOON-SYNTAX
                       | "=/" "(" Spec "\\ace" WideExp "\\ace" WideExp ")"
                       | "=<" "(" WideExp "\\ace" WideExp ")"
                       | "=>" "(" WideExp "\\ace" WideExp ")"
-                      | "=+" "(" WideExp "\\ace" WideExp ")" [seqstrict(1)]
+                      | "=+" "(" WideExp "\\ace" WideExp ")"
                       | "?:" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")" [seqstrict(1)]
                       | "?<" "(" WideExp "\\ace" WideExp ")"
                       | "?@" "(" WideExp "\\ace" WideExp "\\ace" WideExp ")"
@@ -189,34 +189,34 @@ module HOON
          <subject> _->S => S </subject>
 
     // Convert nouns to meta nouns if not an end result
-    rule <k> (P:Noun):TallExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K . [owise]
-    rule <k> (P:Noun):WideExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K . [owise]
+    rule <k> (P:Noun):TallExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K . [priority(200)]
+    rule <k> (P:Noun):WideExp ~> K:K => ({typeOf(P); emptyArmNames(P)}, P) ~> K </k> requires K =/=K . [priority(201)]
 
     // Convert cells of meta nouns to a meta noun
-    rule <k> ([({T1; N1}, P) \ace ({T2; N2}, Q)]:Cell):TallExp => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
-    rule <k> ([({T1; N1}, P) \ace ({T2; N2}, Q)]:Cell):WideExp => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k>
+    rule <k> ([({T1; N1}, P) \ace ({T2; N2}, Q)]:Cell):TallExp => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k> [priority(50)]
+    rule <k> ([({T1; N1}, P) \ace ({T2; N2}, Q)]:Cell):WideExp => ({[T1 \ace T2]; [N1 \ace N2]}, cell(P, Q)) ... </k> [priority(51)]
 
     // Always treat terms as nouns
-    rule <k> ((P:TAS):Spec):TallExp => ({P; .ArmNames}, P) ... </k>
-    rule <k> ((P:TAS):Spec):WideExp => ({P; .ArmNames}, P) ... </k>
+    rule <k> ((P:TAS):Spec):TallExp => ({P; .ArmNames}, P) ... </k> [priority(50)]
+    rule <k> ((P:TAS):Spec):WideExp => ({P; .ArmNames}, P) ... </k> [priority(51)]
 
     // Produce mold from spec
     rule <k> (P:Spec):TallExp => mold(P, S) ... </k>
-         <subject> S->_ </subject> [owise]
+         <subject> S->_ </subject> [priority(200)]
     rule <k> (P:Spec):WideExp => mold(P, S) ... </k>
-         <subject> S->_ </subject> [owise]
+         <subject> S->_ </subject> [priority(201)]
 
     // Lookup wings in the subject
     rule <k> (P:Wing):TallExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
-         <subject> S->_ </subject>
+         <subject> S->_ </subject> [priority(50)]
     rule <k> (P:Wing):WideExp => lookup(toWingStack(P, .WingStack), S, .MetaNounStack, 0) ... </k>
-         <subject> S->_ </subject>
+         <subject> S->_ </subject> [priority(51)]
 
     // Wing the specified noun
-    rule <k> (P:Wing : Q):TallExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k>
-    rule <k> (P:Wing : Q):WideExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k>
-    rule <k> (P:Noun : _):TallExp => P ... </k>
-    rule <k> (P:Noun : _):WideExp => P ... </k>
+    rule <k> (P:Wing : Q):TallExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k> [priority(50)]
+    rule <k> (P:Wing : Q):WideExp => lookup(toWingStack(P, .WingStack), Q, .MetaNounStack, 0) ... </k> [priority(51)]
+    rule <k> (P:Noun : _):TallExp => P ... </k> [priority(50)]
+    rule <k> (P:Noun : _):WideExp => P ... </k> [priority(51)]
 
     // Modify the noun with the desired changes
     syntax Hoon ::= applyWingChanges(WingHoonTallList, MetaNoun)
