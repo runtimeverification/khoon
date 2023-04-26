@@ -221,10 +221,10 @@ module HOON
     // Modify the noun with the desired changes
     syntax Hoon ::= applyWingChanges(WingHoonTallList, MetaNoun)
                   | applyWingChanges(WingHoonWideList, MetaNoun)
-    rule <k> applyWingChanges((P1 \gap P2):WingHoonTallPair \gap P, Q) => applyWingChanges(P, substWithAddr(replaceValues(P2, addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k> requires isNameLookup(P1)
+    rule <k> applyWingChanges((P1 \gap P2):WingHoonTallPair \gap P, Q) => applyWingChanges(P, substWithAddr(replaceValues(unname(P2), addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k> requires isNameLookup(P1) orBool isSample(P1)
     rule <k> applyWingChanges((P1 \gap P2):WingHoonTallPair \gap P, Q) => applyWingChanges(P, substWithAddr(P2, wingToNumAddr(P1, Q), Q)) ... </k> [owise]
     rule <k> applyWingChanges(.WingHoonTallList, Q) => Q ... </k>
-    rule <k> applyWingChanges((P1 \ace P2):WingHoonWidePair ,\ace P, Q) => applyWingChanges(P, substWithAddr(replaceValues(P2, addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k> requires isNameLookup(P1)
+    rule <k> applyWingChanges((P1 \ace P2):WingHoonWidePair ,\ace P, Q) => applyWingChanges(P, substWithAddr(replaceValues(unname(P2), addr(wingToNumAddr(P1, Q), Q)), wingToNumAddr(P1, Q), Q)) ... </k> requires isNameLookup(P1) orBool isSample(P1)
     rule <k> applyWingChanges((P1 \ace P2):WingHoonWidePair ,\ace P, Q) => applyWingChanges(P, substWithAddr(P2, wingToNumAddr(P1, Q), Q)) ... </k> [owise]
     rule <k> applyWingChanges(.WingHoonWideList, Q) => Q ... </k>
     context applyWingChanges((_ \gap HOLE:Hoon):WingHoonTallPair \gap _, _)
@@ -250,10 +250,6 @@ module HOON
          <subject> S->_ </subject>
     context centisLeg(_, _ \gap HOLE:Hoon \gap _, _)
     context centisLeg(_, _ \ace HOLE:Hoon ,\ace _, _)
-
-    // Evaluate an arm in a door
-    syntax Hoon ::= evalArm(Wing, MetaNoun, MetaNoun)
-    rule <k> evalArm(P, Q, R) => push(substWithAddr(replaceValues(unname(R), addr(StringToNumAddr("+6"), Q)), StringToNumAddr("+6"), Q)) ~> getBatteryCode(P, getBattery(Q), getCoreArmNames(Q)) ~> pop() ... </k>
 
     // barcab
     rule <k> |_ \gap P \gap Q \gap -- => =| \gap P \gap |% \gap Q \gap -- ... </k>
@@ -283,8 +279,8 @@ module HOON
     rule <k> %-(P \ace Q) => %~($ \ace P \ace Q) ... </k>
 
     // censig
-    rule <k> %~ \gap P \gap Q \gap R => evalArm(P, Q, R) ... </k> [owise]
-    rule <k> %~(P \ace Q \ace R) => evalArm(P, Q, R) ... </k> [owise]
+    rule <k> %~ \gap P \gap Q \gap R => push(Q) ~> %= \gap P \gap Sample \gap R \gap == ~> pop() ... </k> [owise]
+    rule <k> %~(P \ace Q \ace R) => push(Q) ~> %= \gap P \gap Sample \gap R \gap == ~> pop() ... </k> [owise]
     rule <k> %~ \gap P \gap (_, Q:TAS) \gap R => %~ \gap P \gap mold(Q, S) \gap R ... </k>
          <subject> S->_ </subject>
     rule <k> %~(P \ace (_, Q:TAS) \ace R) => %~(P \ace mold(Q, S) \ace R) ... </k>
@@ -414,6 +410,9 @@ module HOON-HELPER
     syntax WingStack ::= List{Wing, "->"}
     syntax MetaNounStack ::= List{MetaNoun, "->"}
     syntax IntStack ::= List{Int, "->"}
+
+    // Specify if a wing refers to a sample
+    syntax Wing ::= "Sample"
 
     // Make implicit brackets explicit
     syntax Cell ::= explicitBrackets(Cell) [function]
@@ -685,6 +684,12 @@ module HOON-HELPER
     rule isNameLookup(_:KetName._) => true
     rule isNameLookup(_) => false [owise]
 
+    // Check if wing refers to a sample
+    syntax Bool ::= isSample(Wing) [function]
+
+    rule isSample(Sample) => true
+    rule isSample(_) => false [owise]
+
     // Get the code in the battery that the wing refers to
     syntax Hoon ::= coreCode(Name, ArmNames, Core) [function]
 
@@ -803,7 +808,8 @@ module HOON-HELPER
     // Convert a wing to a numeric address
     syntax NumAddr ::= wingToNumAddr(Wing, MetaNoun) [function]
 
-    rule wingToNumAddr(P, Q) => LarkStringToNumAddr(DirToLarkString(addrsToDir(findAddrs(toWingStack(P, .WingStack), Q, .IntStack)), false), 1)
+    rule wingToNumAddr(Sample, _) => StringToNumAddr("+6")
+    rule wingToNumAddr(P, Q) => LarkStringToNumAddr(DirToLarkString(addrsToDir(findAddrs(toWingStack(P, .WingStack), Q, .IntStack)), false), 1) [owise]
 
     // Convert a wing to a wing of only numeric addresses
     syntax IntStack ::= findAddrs(WingStack, Hoon, IntStack) [function]
