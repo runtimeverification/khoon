@@ -80,6 +80,7 @@ module HOON-SYNTAX
 
     // |_ |% syntax does not work with LR(1), but works with GLR
     syntax TallForm ::= "|_" "\\gap" Spec "\\gap" ArmList "\\gap" "--"
+                      | "|:" "\\gap" Hoon "\\gap" Hoon
                       | "|%" "\\gap" ArmList "\\gap" "--"
                       | "|." "\\gap" Hoon
                       | "|-" "\\gap" Hoon
@@ -107,7 +108,8 @@ module HOON-SYNTAX
                       | "?@" "\\gap" Hoon "\\gap" Hoon "\\gap" Hoon
                       | "?=" "\\gap" Spec "\\gap" Hoon [seqstrict(2)]
 
-    syntax WideForm ::= "|." "(" WideExp ")"
+    syntax WideForm ::= "|:" "(" WideExp "\\ace" WideExp ")"
+                      | "|." "(" WideExp ")"
                       | "|-" "(" WideExp ")"
                       | "|=" "(" Spec "\\ace" WideExp ")"
                       | "$=" "(" Skin "\\ace" Spec ")"
@@ -253,6 +255,10 @@ module HOON
 
     // barcab
     rule <k> |_ \gap P \gap Q \gap -- => =| \gap P \gap |% \gap Q \gap -- ... </k>
+
+    // barcol
+    rule <k> |: \gap P \gap Q => =+ \gap P \gap |. \gap Q ... </k>
+    rule <k> |:(P \ace Q) => =+ \gap P \gap |. \gap Q ... </k>
 
     // barcen
     rule <k> |% \gap P \gap -- => buildCore(P, S) ... </k>
