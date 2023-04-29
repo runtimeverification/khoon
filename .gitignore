@@ -1,3 +1,6 @@
 *-kompiled/
 *.pre-parsed
 *.pre-pretty
+.kore-repl-history
+.kprove-*
+.sessionCommands
