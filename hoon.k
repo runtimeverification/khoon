@@ -25,7 +25,7 @@ module HOON-SYNTAX
 
     syntax Noun ::= Atom
                   | Cell
-                  | Name "=" Noun
+                  | Name "=" Noun [prefer]
                   | Digraph
 
     syntax Atom ::= TAS
@@ -51,7 +51,7 @@ module HOON-SYNTAX
     syntax lexical UD = r"(0{1})|([1-9]{1}[0-9]{0,2})(\\.(\\\\gap)?[0-9]{3})*"
     syntax lexical UI = r"(0i)(0{1}|[1-9]{1}[0-9]*)"
 
-    syntax Cell ::= "[" Hoon "\\ace" Hoon "]" [seqstrict]
+    syntax Cell ::= "[" Hoon "\\ace" Hoon "]" [seqstrict, prefer]
                   | "[" Hoon "\\ace" Hoon "\\ace" CellImplicit "]"
     syntax CellImplicit ::= List{Hoon, "\\ace"}
 
@@ -137,7 +137,7 @@ module HOON-SYNTAX
 
     syntax Digraph ::= "!!"
 
-    syntax Spec ::= "[" Spec "\\ace" Spec "]" [avoid]
+    syntax Spec ::= "[" Spec "\\ace" Spec "]"
                   | "[" Spec "\\ace" Spec "\\ace" SpecCellImplicit "]"
                   | TAS
                   | "*"
@@ -146,7 +146,7 @@ module HOON-SYNTAX
                   | "?"
                   | "~"
                   | Aura
-                  | Name "=" Spec [avoid]
+                  | Name "=" Spec
     syntax SpecCellImplicit ::= List{Spec, "\\ace"}
 
     syntax Aura ::= AText
@@ -160,7 +160,7 @@ module HOON-SYNTAX
 
     syntax Skin ::= Name
                   | Name "=" Skin
-                  | "[" Skin "\\ace" Skin "]" [avoid]
+                  | "[" Skin "\\ace" Skin "]"
                   | "[" Skin "\\ace" Skin "\\ace" SkinCellImplicit "]"
     syntax SkinCellImplicit ::= List{Skin, "\\ace"}
 endmodule
