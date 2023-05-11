@@ -412,6 +412,16 @@ module HOON-HELPER
     imports STRING
     imports K-EQUAL
     imports BOOL
+    imports K-AMBIGUITIES
+
+    // Disambiguate GLR parser
+    rule amb(P:Cell, _:Spec):WideExp => P
+    rule amb(P:Cell, _:Skin):WideExp => P
+    rule amb(P:Noun, _:Skin):WideExp => P
+    rule amb(P:Noun, _:Spec):WideExp => P
+    rule amb(_:WideExp, Q:Noun):Hoon => Q
+    rule amb(P:Hoon, _:Spec):Hoon => P
+    rule amb(P:Hoon, _):Hoon => P [owise]
 
     syntax WingStack ::= List{Wing, "->"}
     syntax MetaNounStack ::= List{MetaNoun, "->"}
