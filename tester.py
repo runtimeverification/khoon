@@ -40,7 +40,6 @@ def test_bad(location):
     p = run(["./khoon.sh", location], capture_output=True)
     return p.returncode != 0, p.stdout.decode().rstrip('\n'), "ERROR", p.stderr
 
-run(["kompile", "hoon.k", "--gen-glr-bison-parser"])
 good_passed, good_total = test("tests/good/", TestKind.GOOD)
 bad_rejected, bad_total = test("tests/bad/", TestKind.BAD)
 print("GOOD PASSED:  [" + str(good_passed) + "/" + str(good_total) + "]")
