@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
+from .utils import TEST_DATA_DIR
+
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from khoon import KHoon
 
-
-TEST_DATA_DIR = (Path(__file__).parent / 'test-data').resolve(strict=True)
 
 GOOD_FILES = tuple((TEST_DATA_DIR / 'good').glob('*.hoon'))
 BAD_FILES = tuple((TEST_DATA_DIR / 'bad').glob('*.hoon'))
