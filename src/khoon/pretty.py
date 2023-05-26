@@ -1,30 +1,35 @@
-import sys
 import re
+import sys
+
 
 # Remove all spaces and replace aces with spaces
 def pretty_spaces(s):
-    s = re.sub(r'\\gap| ', "", s)
-    s = re.sub(r'\\ace', " ", s)
+    s = re.sub(r'\\gap| ', '', s)
+    s = re.sub(r'\\ace', ' ', s)
     return s
 
-# Replace all "\dot" with "."
+
+# Replace all '\dot' with '.'
 def pretty_dots(s):
-    s = re.sub(r'\\dot', ".", s)
+    s = re.sub(r'\\dot', '.', s)
     return s
+
 
 # Get the value of the k cell
 def get_k_res(s):
     lines = s.splitlines()
-    i = lines.index("<k>") + 1
-    return lines[i][:-3] # remove ending "~>."
+    i = lines.index('<k>') + 1
+    return lines[i][:-3]  # remove ending '~>.'
+
 
 # Extract the noun from the meta noun
 def strip_meta_info(s):
-    i = s.find(",")
+    i = s.find(',')
     if i == -1:
         return s
     else:
-        return s[i+1:-1]
+        return s[i + 1 : -1]
+
 
 input_file = sys.argv[1]
 with open(input_file) as f:
