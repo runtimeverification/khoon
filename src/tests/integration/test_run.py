@@ -13,7 +13,10 @@ if TYPE_CHECKING:
 
 
 GOOD_FILES = tuple((TEST_DATA_DIR / 'good').glob('*.hoon'))
+GOOD_SKIPPED = set((TEST_DATA_DIR / 'good' / 'excluded').read_text().splitlines())
+
 BAD_FILES = tuple((TEST_DATA_DIR / 'bad').glob('*.hoon'))
+BAD_SKIPPED = set((TEST_DATA_DIR / 'bad' / 'excluded').read_text().splitlines())
 
 GOOD_TEST_DATA = tuple(
     (program_file, program_file.parent / f'{program_file.name}.output') for program_file in GOOD_FILES
@@ -26,6 +29,9 @@ GOOD_TEST_DATA = tuple(
     ids=[program_file.name for program_file, _ in GOOD_TEST_DATA],
 )
 def test_good(khoon: KHoon, program_file: Path, expected_file: Path) -> None:
+    if program_file.name in GOOD_SKIPPED:
+        pytest.skip()
+
     # Given
     expected = expected_file.read_text().rstrip()
 
@@ -42,6 +48,9 @@ def test_good(khoon: KHoon, program_file: Path, expected_file: Path) -> None:
     ids=[program_file.name for program_file in BAD_FILES],
 )
 def test_bad(khoon: KHoon, program_file: Path) -> None:
+    if program_file.name in BAD_SKIPPED:
+        pytest.skip()
+
     # Then
     with pytest.raises(RuntimeError):
         # When
