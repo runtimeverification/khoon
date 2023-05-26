@@ -1,0 +1,67 @@
+name: 'Run Tests'
+on:
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  code-quality-checks:
+    name: 'Code Quality Checks'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v3
+      - name: 'Install Poetry'
+        uses: Gr1N/setup-poetry@v8
+      - name: 'Run code quality checks'
+        run: make check
+      - name: 'Run pyupgrade'
+        run: make pyupgrade
+
+  unit-tests:
+    needs: code-quality-checks
+    name: 'Unit Tests'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v3
+      - name: 'Install Poetry'
+        uses: Gr1N/setup-poetry@v8
+      - name: 'Run unit tests'
+        run: make cov-unit
+
+  integration-tests:
+    needs: code-quality-checks
+    name: 'Integration Tests'
+    runs-on: [self-hosted, linux, normal]
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v3
+      - name: 'Build Docker image'
+        run: |
+          COMMIT=$(git rev-parse --short=7 HEAD)
+          K_VERSION=$(cut --delim=v --field=2 deps/k_release)
+          docker build .                                            \
+            --build-arg K_VERSION=${K_VERSION}                      \
+            --tag runtimeverificationinc/khoon-ci:${COMMIT}
+          docker run             \
+            --name khoon-ci      \
+            --rm                 \
+            --interactive        \
+            --tty                \
+            --detach             \
+            --workdir /home/user \
+            runtimeverificationinc/khoon-ci:${COMMIT}
+          docker cp . khoon-ci:/home/user
+          docker exec khoon-ci chown -R user:user /home/user
+      - name: 'Set Python version'
+        run: docker exec --user user khoon-ci poetry env use 3.10
+      - name: 'Build and run integration tests'
+        run: docker exec --user user khoon-ci make cov-integration COV_ARGS=-n8
+      - name: 'Tear down Docker container'
+        if: always()
+        run: |
+          docker stop --time=0 khoon-ci
