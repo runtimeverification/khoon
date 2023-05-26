@@ -3,19 +3,19 @@ import sys
 
 
 # Replace two or more spaces or newline (gaps) with \gap
-def explicit_gaps_and_aces(s):
+def explicit_gaps_and_aces(s: str) -> str:
     s = s.rstrip(' \n')
     s = re.sub(r'((  |\n)[ \n]*)', r'\\gap', s)
     return explicit_aces(s)
 
 
 # Replace single spaces (aces) with \ace
-def explicit_aces(s):
+def explicit_aces(s: str) -> str:
     return re.sub(r' ', r'\\ace', s)
 
 
 # Replace '.' with '\dot' if it refers to the current subject
-def replace_dots(s):
+def replace_dots(s: str) -> str:
     dots_to_keep = re.findall(
         r'([0-9]\.)|(\.[0-9])|([%]\.[yn])|(\.[=])|([a-z]\.)|(\.[a-z])|(\|\.)|(\.\+)|([\+\-><]\.)', s
     )
@@ -33,7 +33,7 @@ def replace_dots(s):
 
 
 # Substitute every other character in s1 with s2
-def alt_subst(s1, s2):
+def alt_subst(s1: str, s2: str) -> str:
     new = []
     for i in range(0, len(s1)):
         if i % 2:

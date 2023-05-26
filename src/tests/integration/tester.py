@@ -8,7 +8,7 @@ class TestKind(Enum):
     BAD = 1
 
 
-def test(path, kind):
+def test(path: str, kind: TestKind) -> tuple[int, int]:
     f = None
     match kind:
         case TestKind.GOOD:
@@ -33,14 +33,14 @@ def test(path, kind):
     return passed, total
 
 
-def test_good(location):
+def test_good(location: str) -> tuple[bool, str, str, bytes]:
     p = run(['./khoon.sh', location], capture_output=True)
     actual = p.stdout.decode()
     expected = open(location + '.output').read()
     return actual == expected, actual.rstrip('\n'), expected.rstrip('\n'), p.stderr
 
 
-def test_bad(location):
+def test_bad(location: str) -> tuple[bool, str, str, bytes]:
     p = run(['./khoon.sh', location], capture_output=True)
     return p.returncode != 0, p.stdout.decode().rstrip('\n'), 'ERROR', p.stderr
 
