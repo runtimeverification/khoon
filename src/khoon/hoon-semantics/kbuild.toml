@@ -1,0 +1,16 @@
+[project]
+name = "hoon-semantics"
+version = "0.1.0"
+source = "."
+
+[targets.llvm]
+backend = "llvm"
+main-file = "hoon.k"
+main-module = "HOON"
+syntax-module = "HOON-SYNTAX"
+
+[targets.haskell]
+backend = "haskell"
+main-file = "hoon.k"
+main-module = "HOON"
+syntax-module = "HOON-SYNTAX"
